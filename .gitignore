@@ -1,0 +1,47 @@
+# Arquivos de Variáveis de Ambiente / Segredos
+.env
+*.env
+*.local
+
+# Documentação de ajuda gerada automaticamente
+HELP.md
+
+# Build e artefatos do Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse / Spring Tool Suite (STS)
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# VS Code
+.vscode/
+
+# Logs e arquivos de SO
+*.log
+.DS_Store
+Thumbs.db
