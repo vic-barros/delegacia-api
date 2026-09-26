@@ -31,7 +31,7 @@ public class OitivaParte {
     private TipoParte tipoParte;
 
     @NotBlank(message = "O nome da parte a ser ouvida deve ser informado, não pode ser nulo ou vazio")
-    @Column(name = "nome_parte")
+    @Column(name = "nome_parte", nullable = false)
     private String nomeParte; //questionando a necessidade deste atributo
 
     @NotNull(message = "A oitiva vinculada deve ser informada no cadastro da parte")
@@ -40,7 +40,7 @@ public class OitivaParte {
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_oitiva"))
     private Oitiva oitiva;
 
-    public OitivaParte(TipoParte tipoParte, String identificacaoParte){
+    public OitivaParte(TipoParte tipoParte, String NomeParte){
         this.tipoParte = tipoParte;
         this.nomeParte = nomeParte;
     }

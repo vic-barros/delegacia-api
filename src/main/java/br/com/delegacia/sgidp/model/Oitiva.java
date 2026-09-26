@@ -4,6 +4,7 @@ import br.com.delegacia.sgidp.enums.StatusOitiva;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -45,20 +46,22 @@ public class Oitiva {
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_procedimento"))
     private Procedimento procedimento;
 
-    @NotNull(message = "A oitiva deve possuir uma parte intimada cadastrada")
+    @NotNull(message = "A oitiva deve possuir um usuário respnsável pela oitiva")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsavel_id", nullable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_intimada"))
-    private Usuario parteIntimada;
+    private Usuario responsavel;
 
     @NotNull(message = "A oitiva deve registrar o usuário que a cadastrou")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cadastrado_por_id", nullable = false,
+    @JoinColumn(name = "cadastrado_por_id", nullable = false, updatable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_usuario_cadastrado"))
     private Usuario cadastradoPor;
 
+    //Oitiva e OitivaParte possuem relação de composição, por isso precisam desse elo
     @Size(min = 1, message = "A oitiva deve possuir ao menos uma parte")
     @OneToMany(mappedBy = "oitiva", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Setter(AccessLevel.NONE) //Para ninguém acessar partes com setPartes() e quebrar o orphanRemoval
     private List<OitivaParte> partes = new ArrayList<>();
 
     public void adicionarParte(OitivaParte parte){
@@ -66,7 +69,7 @@ public class Oitiva {
         this.partes.add(parte);
     }
 
-    public void removerOitiva(OitivaParte parte) {
+    public void removerParte(OitivaParte parte) {
         this.partes.remove(parte);
         parte.setOitiva(null);
     }
