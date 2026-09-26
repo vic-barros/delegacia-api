@@ -34,6 +34,10 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   `UnexpectedTypeException`).
 - Segurança: authorities com prefixo `ROLE_`; na configuração usar `hasRole("ADMIN")` (o Spring adiciona o
   prefixo) ou `hasAuthority("ROLE_ADMIN")`. O claim de papel no JWT guarda o valor completo (`ROLE_...`).
+- JWT enxuto (decisão para o hackathon): usar o suporte nativo do Spring Security (OAuth2 Resource Server,
+  HS256 com `JWT_SECRET`), sem filtro JWT manual. Só `POST /auth/login` emitindo access token (claims: login e
+  papel; validade ~8h). Sem refresh token, sem blacklist/logout no servidor (logout = front descarta o token).
+  Limitação aceita: usuário desativado mantém o token válido até expirar.
 - Textos de UI/mensagens e documentação em português.
 
 ## Modelo de domínio
