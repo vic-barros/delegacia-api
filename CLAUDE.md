@@ -25,13 +25,22 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - Validação de entrada com Bean Validation nos DTOs; senhas com BCrypt.
 - Tabelas de histórico (`historico_custodia`, `historico_status_procedimento`, `historico_situacao_veiculo`)
   são imutáveis: só inserção (`@Immutable` ou `updatable = false`). Nunca sobrescrever registro anterior.
+- Nomes no banco: sequence `seq_<tabela>`; FK `fk_<tabela>_<referência>` (ex.: `fk_usuario_role`);
+  unique `unique_<coluna>` declarada só na `@Table` (sem `unique = true` duplicado na `@Column`).
+- Atributos Java em camelCase com `@Column(name = "snake_case")` quando o nome da coluna diferir
+  (ex.: `senhaHash` -> `senha_hash`). Campo de relacionamento guarda o objeto: `role`, não `roleId`.
+- Bean Validation: `@NotBlank` só em `String`; enums e relacionamentos usam `@NotNull`
+  (com `spring-boot-starter-validation`, o Hibernate valida no persist e `@NotBlank` em não-String lança
+  `UnexpectedTypeException`).
+- Segurança: authorities com prefixo `ROLE_`; na configuração usar `hasRole("ADMIN")` (o Spring adiciona o
+  prefixo) ou `hasAuthority("ROLE_ADMIN")`. O claim de papel no JWT guarda o valor completo (`ROLE_...`).
 - Textos de UI/mensagens e documentação em português.
 
 ## Modelo de domínio
 
 | Entidade | Pontos-chave |
 |---|---|
-| `Role` | catálogo extensível; `nome` varchar UNIQUE (não é enum) |
+| `Role` | catálogo extensível; `acesso` varchar UNIQUE (não é enum), no padrão Spring Security (`ROLE_ADMIN`, `ROLE_DELEGADO`, `ROLE_POLICIAL`, `ROLE_ESTAGIARIO`); `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
 | `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `status: StatusUsuario`, FK `role` (N:1). **Sem e-mail** |
 | `Procedimento` | `tipo: TipoProcedimento`, `numero`, `ano`, `crime`, `dataAbertura`, `dataRemessaFinal`, `protocoloRemessaFinal`, `status`, FK `detentorAtual` -> usuario. **UNIQUE (tipo, numero, ano)** |
 | `HistoricoStatusProcedimento` | `statusAnterior`, `statusNovo`, `motivo` (texto livre, ex. cota judicial/ministerial), `dataTransicao`, FKs `procedimento`, `responsavel` |
