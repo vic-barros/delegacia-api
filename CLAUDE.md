@@ -46,7 +46,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 |---|---|
 | `Role` | catálogo extensível; `acesso` varchar UNIQUE (não é enum), no padrão Spring Security (`ROLE_ADMIN`, `ROLE_DELEGADO`, `ROLE_POLICIAL`, `ROLE_ESTAGIARIO`); `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
 | `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `status: StatusUsuario`, FK `role` (N:1). **Sem e-mail** |
-| `Procedimento` | `tipo: TipoProcedimento`, `numero`, `ano`, `crime`, `dataAbertura`, `dataRemessaFinal`, `protocoloRemessaFinal`, `status`, FK `detentorAtual` -> usuario. **UNIQUE (tipo, numero, ano)** |
+| `Procedimento` | `tipo: TipoProcedimento`, `numero: Long` (bigint; só dígitos, sem zeros à esquerda — formatação fica na UI), `ano: Integer`, `crime`, `dataAbertura`, `dataRemessaFinal`, `protocoloRemessaFinal`, `status`, FK `detentorAtual` -> usuario. **UNIQUE (tipo, numero, ano)** |
 | `HistoricoStatusProcedimento` | `statusAnterior`, `statusNovo`, `motivo` (texto livre, ex. cota judicial/ministerial), `dataTransicao`, FKs `procedimento`, `responsavel` |
 | `Repasse` | `status: StatusRepasse`, `justificativaRecusa`, `dataSolicitacao`, `dataResposta`, FKs `procedimento`, `solicitante`, `destinatario` (solicitante != destinatario) |
 | `HistoricoCustodia` | `dataInicio`, `dataFim` (null = custódia atual), `origem: OrigemCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (nullable) |
@@ -59,7 +59,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 ### Enums
 
 - `StatusUsuario`: PENDENTE, APROVADO, REJEITADO, DESATIVADO
-- `TipoProcedimento`: IP, TOC, AIAI, AIFAI
+- `TipoProcedimento`: BO, IP, TCO, APF, AIAI, AAFAI, ROP (com `descricao`, ex.: TCO = Termo Circunstanciado de Ocorrência)
 - `StatusProcedimento`: EM_ANDAMENTO, ARQUIVADO
 - `StatusOitiva`: AGENDADA, CONCLUIDA, CANCELADA
 - `StatusRepasse`: PENDENTE, ACEITO, RECUSADO

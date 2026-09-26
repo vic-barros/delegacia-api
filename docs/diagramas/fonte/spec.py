@@ -8,7 +8,7 @@ def N(t):return (t,'n')
 def I(t):return (t,'i')
 
 DER={
-'procedimento':('procedimento',[P('PK id: bigint'),N('tipo: varchar (enum TipoProcedimento)'),I('(IP, TOC, AIAI, AIFAI)'),N('numero: varchar'),N('ano: integer'),N('crime: varchar'),N('data_abertura: date'),N('data_remessa_final: date'),N('protocolo_remessa_final: varchar'),N('status: varchar'),I('(EM_ANDAMENTO, ARQUIVADO)'),F('FK detentor_atual_id: bigint'),I('UNIQUE (tipo, numero, ano)')],'lav'),
+'procedimento':('procedimento',[P('PK id: bigint'),N('tipo: varchar (enum TipoProcedimento)'),I('(BO, IP, TCO, APF, AIAI, AAFAI, ROP)'),N('numero: bigint'),N('ano: integer'),N('crime: varchar'),N('data_abertura: date'),N('data_remessa_final: date'),N('protocolo_remessa_final: varchar'),N('status: varchar'),I('(EM_ANDAMENTO, ARQUIVADO)'),F('FK detentor_atual_id: bigint'),I('UNIQUE (tipo, numero, ano)')],'lav'),
 'usuario':('usuario',[P('PK id: bigint'),N('nome: varchar'),N('matricula: varchar (UNIQUE)'),N('login: varchar (UNIQUE)'),N('senha_hash: varchar'),N('status: varchar'),I('(PENDENTE, APROVADO, REJEITADO, DESATIVADO)'),F('FK role_id: bigint')],'mint'),
 'role':('role',[P('PK id: bigint'),N('acesso: varchar (UNIQUE)'),I('ex.: ROLE_ADMIN, ROLE_DELEGADO,'),I('ROLE_POLICIAL, ROLE_ESTAGIARIO'),N('descricao: varchar')],'pink'),
 'oitiva':('oitiva',[P('PK id: bigint'),N('data_hora: timestamp'),N('status: varchar'),I('(AGENDADA, CONCLUIDA, CANCELADA)'),N('motivo_cancelamento: varchar'),N('data_cadastro: timestamp'),F('FK procedimento_id: bigint'),F('FK responsavel_id: bigint'),F('FK cadastrado_por_id: bigint')],'mint'),
@@ -21,7 +21,7 @@ DER={
 'hsv':('historico_situacao_veiculo',[P('PK id: bigint'),N('situacao_anterior: varchar'),N('situacao_nova: varchar'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: varchar'),N('data_transicao: timestamp'),F('FK veiculo_id: bigint'),F('FK responsavel_id: bigint')],'cyan'),
 }
 CLS={
-'procedimento':('Procedimento',[N('id: Long'),N('tipo: TipoProcedimento'),I('(IP, TOC, AIAI, AIFAI)'),N('numero: String'),N('ano: Integer'),N('crime: String'),N('dataAbertura: LocalDate'),N('dataRemessaFinal: LocalDate'),N('protocoloRemessaFinal: String'),N('status: StatusProcedimento'),I('(EM_ANDAMENTO, ARQUIVADO)')],'lav'),
+'procedimento':('Procedimento',[N('id: Long'),N('tipo: TipoProcedimento'),I('(BO, IP, TCO, APF, AIAI, AAFAI, ROP)'),N('numero: Long'),N('ano: Integer'),N('crime: String'),N('dataAbertura: LocalDate'),N('dataRemessaFinal: LocalDate'),N('protocoloRemessaFinal: String'),N('status: StatusProcedimento'),I('(EM_ANDAMENTO, ARQUIVADO)')],'lav'),
 'usuario':('Usuario',[N('id: Long'),N('nome: String'),N('matricula: String'),N('login: String'),N('senhaHash: String'),N('status: StatusUsuario'),I('(PENDENTE, APROVADO, REJEITADO, DESATIVADO)')],'mint'),
 'role':('Role',[N('id: Long'),N('acesso: String'),I('ex.: ROLE_ADMIN, ROLE_DELEGADO,'),I('ROLE_POLICIAL, ROLE_ESTAGIARIO'),N('descricao: String'),I('implements GrantedAuthority')],'pink'),
 'oitiva':('Oitiva',[N('id: Long'),N('dataHora: LocalDateTime'),N('status: StatusOitiva'),I('(AGENDADA, CONCLUIDA, CANCELADA)'),N('motivoCancelamento: String'),N('dataCadastro: LocalDateTime')],'mint'),
