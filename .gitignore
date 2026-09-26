@@ -45,3 +45,8 @@ build/
 *.log
 .DS_Store
 Thumbs.db
+# Saidas temporarias do gerador de diagramas
+docs/diagramas/fonte/*.html
+docs/diagramas/fonte/*.json
+docs/diagramas/fonte/*.png
+docs/diagramas/fonte/*.pdf
