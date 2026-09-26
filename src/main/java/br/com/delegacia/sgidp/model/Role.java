@@ -25,7 +25,7 @@ public class Role implements GrantedAuthority {
     private Long id;
 
     @NotBlank(message = "O campo acesso não pode ser nulo ou vazio")
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String acesso; //seria o acesso
 
     @Column

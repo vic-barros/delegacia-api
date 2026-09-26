@@ -3,6 +3,7 @@ package br.com.delegacia.sgidp.model;
 import br.com.delegacia.sgidp.enums.StatusUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Table(name = "usuario", uniqueConstraints = {
         @UniqueConstraint(name = "unique_matricula", columnNames = { "matricula" }),
         @UniqueConstraint(name = "unique_login", columnNames = { "login" }) })
-@SequenceGenerator(name = "seq_usuario", sequenceName = "usuario_seq", allocationSize = 1, initialValue = 1)
+@SequenceGenerator(name = "seq_usuario", sequenceName = "seq_usuario", allocationSize = 1, initialValue = 1)
 @Getter
 @Setter
 public class Usuario {
@@ -24,24 +25,25 @@ public class Usuario {
     private String nome;
 
     @NotBlank(message = "O campo matricula não pode ser nulo ou vazio")
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String matricula;
 
     @NotBlank(message = "O campo login não pode ser nulo ou vazio")
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String login;
 
     @NotBlank(message = "O campo senha_hash não pode ser nulo ou vazio")
-    @Column(nullable = false)
-    private String senha_hash;
+    @Column(name = "senha_hash", nullable = false)
+    private String senhaHash;
 
     @Enumerated(EnumType.STRING)
-    @NotBlank(message = "O campo status não pode ser nulo ou vazio")
-    @Column(nullable = false)
+    @NotNull(message = "O campo status não pode ser nulo")
+    @Column(name = "status", nullable = false)
     private StatusUsuario statusUsuario;
 
-    @NotBlank(message = "O usuário não pode ter o campo roleId nulo ou vazio")
+    @NotNull(message = "O usuário deve possuir um papel - role")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "role_id_fk"))
-    private Role roleId;
+    @JoinColumn(name = "role_id", nullable = false,
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_usuario_role"))
+    private Role role;
 }

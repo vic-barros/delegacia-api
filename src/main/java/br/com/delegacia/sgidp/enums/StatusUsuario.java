@@ -1,8 +1,11 @@
 package br.com.delegacia.sgidp.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum StatusUsuario {
 
-    PENDENTE("Ativo"),
+    PENDENTE("Pendente"),
     APROVADO("Aprovado"),
     REJEITADO("Rejeitado"),
     DESATIVADO("Desativado");
@@ -11,9 +14,5 @@ public enum StatusUsuario {
 
     StatusUsuario(String descricao) {
         this.descricao = descricao;
-    }
-
-    public String getDescricao() {
-        return descricao;
     }
 }
