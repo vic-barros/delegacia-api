@@ -51,7 +51,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 | `Repasse` | `status: StatusRepasse`, `justificativaRecusa`, `dataSolicitacao`, `dataResposta`, FKs `procedimento`, `solicitante`, `destinatario` (solicitante != destinatario) |
 | `HistoricoCustodia` | `dataInicio`, `dataFim` (null = custódia atual), `origem: OrigemCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (nullable) |
 | `Oitiva` | `dataHora`, `status: StatusOitiva`, `motivoCancelamento`, `dataCadastro` (automático), FKs `procedimento`, `responsavel`, `cadastradoPor` |
-| `OitivaParte` | `tipoParte: TipoParte`, `identificacaoParte`, FK `oitiva` |
+| `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`), FK `oitiva`. Construtor `(tipoParte, nomeParte)` + construtor vazio `protected` |
 | `Notificacao` | `tipo: TipoNotificacao`, `mensagem`, `lida`, `dataCriacao`, FK `usuarioDestinatario` |
 | `Veiculo` | `tipoVeiculo`, `lacre` UK (gerado, imutável), `marca`, `modelo`, `cor`, `placa`/`chassi` (nullable), `motor`, `caracteristicasVisuais`, `pericia: Pericia`, `situacao: SituacaoVeiculo` (inicial `NA_DEPOL`), `localizacaoPatio` (nullable), `observacoes`, FK `procedimento` |
 | `HistoricoSituacaoVeiculo` | `situacaoAnterior`, `situacaoNova`, `motivo`, `dataTransicao`, FKs `veiculo`, `responsavel` |
@@ -61,7 +61,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - `StatusUsuario`: PENDENTE, APROVADO, REJEITADO, DESATIVADO
 - `TipoProcedimento`: BO, IP, TCO, APF, AIAI, AAFAI, ROP (com `descricao`, ex.: TCO = Termo Circunstanciado de Ocorrência)
 - `StatusProcedimento`: EM_ANDAMENTO, ARQUIVADO
-- `StatusOitiva`: AGENDADA, CONCLUIDA, CANCELADA
+- `StatusOitiva`: AGENDADA, CONCLUIDA, DESMARCADA (remarcar = editar data/hora mantendo AGENDADA; não há status REMARCADA)
 - `StatusRepasse`: PENDENTE, ACEITO, RECUSADO
 - `OrigemCustodia`: CADASTRO_INICIAL, REPASSE
 - `TipoParte`: INVESTIGADO, TESTEMUNHA, VITIMA
@@ -79,7 +79,12 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   para EM_ANDAMENTO com motivo livre e registro em histórico.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda (fecha `dataFim` do histórico
   atual e abre um novo com origem REPASSE).
-- **Oitiva**: conflito de horário é verificado por responsável; oitiva CONCLUIDA/CANCELADA não é editável.
+- **Oitiva**: conflito de horário é verificado por responsável; oitiva CONCLUIDA/DESMARCADA não é editável.
+  Desmarcar exige motivo (`motivoCancelamento`). Remarcar só altera `dataHora`. `dataCadastro` via
+  `@CreationTimestamp`; `cadastradoPor` vem do usuário autenticado (JWT), nunca do formulário.
+  `Oitiva` é dona das partes (composição): `@OneToMany(mappedBy = "oitiva", cascade = ALL, orphanRemoval = true)`,
+  `@Size(min = 1)`, lista sem setter; usar sempre `adicionarParte()`/`removerParte()`. `dataHora` precisa ser
+  atualizável (remarcação); `dataCadastro` e `cadastradoPor` são `updatable = false`.
 - **Lacre do veículo**: gerado na camada de service, formato `LAC-AAAA-NNNNNN` (ano corrente + sequencial de
   6 dígitos de uma sequence dedicada do banco, separada da sequence do id). Não usar `@PrePersist` com o id
   (o id ainda é nulo nesse momento).

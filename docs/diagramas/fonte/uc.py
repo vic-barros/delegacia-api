@@ -47,3 +47,10 @@ diagram('uc_veic',1400,1000,'Sistema - Veiculos Apreendidos',(500,30,870,950),
   'edi':(930,700,270,'Editar dados e pericia','salmon'),'con':(930,880,300,'Consultar veiculos e historico','lav')},
  [('srv','cad'),('srv','sit'),('srv','edi'),('srv','con'),('est','con')],
  gens=[('pol','srv'),('del','srv')],incs=[('cad','lac'),('sit','his')])
+
+diagram('uc_oit',1360,900,'Sistema - Modulo Oitivas',(460,40,860,820),
+ {'srv':(180,80,'Servidor','(abstrato)'),'pol':(80,420,'Policial',None),'del':(280,420,'Delegado',None),'est':(180,640,'Estagiario',None)},
+ {'ag':(880,140,240,'Agendar oitiva','mint'),'ed':(880,320,270,'Editar / remarcar oitiva','mint'),
+  'des':(880,500,240,'Desmarcar oitiva','salmon'),'bus':(880,700,260,'Buscar / listar oitivas','lav')},
+ [('srv','ag'),('srv','ed'),('srv','des'),('srv','bus'),('est','bus')],
+ gens=[('pol','srv'),('del','srv')])
