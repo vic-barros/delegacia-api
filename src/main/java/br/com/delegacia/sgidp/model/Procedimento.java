@@ -4,14 +4,18 @@ import br.com.delegacia.sgidp.enums.StatusProcedimento;
 import br.com.delegacia.sgidp.enums.TipoProcedimento;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
-@Table (name = "procedimento")
+@Table (name = "procedimento", uniqueConstraints
+        = {
+                @UniqueConstraint(name =
+                "unique_tipo_numero_ano", columnNames = {
+                        "tipo", "numero", "ano"})})
 @SequenceGenerator(name= "seq_procedimento", sequenceName = "seq_procedimento", allocationSize = 1, initialValue = 1)
 @Getter
 @Setter
@@ -27,22 +31,25 @@ public class Procedimento {
     private TipoProcedimento tipoProcedimento;
 
     @NotNull(message = "O campo do número procedimento não pode ser nulo")
+    @Positive(message = "O número do procedimento deve ser positivo")
     @Column(name = "numero", nullable = false)
-    private String numeroProcedimento;
+    private Long numeroProcedimento;
 
     @NotNull(message = "O campo do ano do procedimento não pode ser nulo")
+    @Positive(message = "O ano do procedimento deve ser positivo")
     @Column(name = "ano", nullable = false)
-    private int anoProcedimento;
+    private Integer anoProcedimento;
 
     @NotNull(message = "O campo do crime do procedimento não pode ser nulo")
     @Column(name = "crime", nullable = false)
     private String crime;
 
+    @NotNull(message = "A data de abertura do procedimento não pode ser nula")
     @Column(name = "data_abertura", nullable = false)
-    private LocalDateTime dataAbertura;
+    private LocalDate dataAbertura;
 
     @Column(name = "data_remessa_final", nullable = true)
-    private LocalDateTime dataRemessaFinal;
+    private LocalDate dataRemessaFinal;
 
     @Column(name = "protocolo_remessa_final", nullable = true)
     private String protocoloRemessaFinal;
@@ -54,7 +61,7 @@ public class Procedimento {
 
     @NotNull(message = "O procedimento deve possuir um usuário detentor")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "detentor_atual", nullable = false,
+    @JoinColumn(name = "detentor_atual_id", nullable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_procedimento_usuario"))
     private Usuario detentorAtual;
 
