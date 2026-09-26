@@ -40,7 +40,7 @@ public class OitivaParte {
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_oitiva"))
     private Oitiva oitiva;
 
-    public OitivaParte(TipoParte tipoParte, String NomeParte){
+    public OitivaParte(TipoParte tipoParte, String nomeParte){
         this.tipoParte = tipoParte;
         this.nomeParte = nomeParte;
     }

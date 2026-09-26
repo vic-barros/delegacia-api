@@ -25,7 +25,7 @@ public class Oitiva {
     private Long id;
 
     @NotNull(message = "A data e hora da oitiva deve ser informada")
-    @Column(name = "data_hora", nullable = false, updatable = false)
+    @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
@@ -49,7 +49,7 @@ public class Oitiva {
     @NotNull(message = "A oitiva deve possuir um usuário respnsável pela oitiva")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsavel_id", nullable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_intimada"))
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_reponsavel"))
     private Usuario responsavel;
 
     @NotNull(message = "A oitiva deve registrar o usuário que a cadastrou")
