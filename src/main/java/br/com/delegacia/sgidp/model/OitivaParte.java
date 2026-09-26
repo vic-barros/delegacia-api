@@ -2,14 +2,22 @@ package br.com.delegacia.sgidp.model;
 
 import br.com.delegacia.sgidp.enums.TipoParte;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "oitiva_parte")
 @Getter
 @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) //faz o lombok gerar p construtor vazio como protected em vez de public
 @SequenceGenerator(name= "seq_oitiva_parte", sequenceName = "seq_oitiva_parte", allocationSize = 1, initialValue = 1)
 public class OitivaParte {
 
@@ -22,12 +30,19 @@ public class OitivaParte {
     @Column(name = "tipo_parte", nullable = false)
     private TipoParte tipoParte;
 
-    @Column(name = "identificacao_parte")
-    private String identificacaoParte; //questionando a necessidade deste atributo
+    @NotBlank(message = "O nome da parte a ser ouvida deve ser informado, não pode ser nulo ou vazio")
+    @Column(name = "nome_parte")
+    private String nomeParte; //questionando a necessidade deste atributo
 
     @NotNull(message = "A oitiva vinculada deve ser informada no cadastro da parte")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "oitiva_id", nullable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_oitiva"))
     private Oitiva oitiva;
+
+    public OitivaParte(TipoParte tipoParte, String identificacaoParte){
+        this.tipoParte = tipoParte;
+        this.nomeParte = nomeParte;
+    }
+
 }

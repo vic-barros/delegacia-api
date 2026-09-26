@@ -3,10 +3,14 @@ package br.com.delegacia.sgidp.model;
 import br.com.delegacia.sgidp.enums.StatusOitiva;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "oitiva")
@@ -20,38 +24,52 @@ public class Oitiva {
     private Long id;
 
     @NotNull(message = "A data e hora da oitiva deve ser informada")
-    @Column(name = "data_hora")
+    @Column(name = "data_hora", nullable = false, updatable = false)
     private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
     @NotNull(message = "O campo do status da oitiva não pode ser nulo")
     @Column(name = "status", nullable = false)
-    private StatusOitiva statusOitiva;
+    private StatusOitiva statusOitiva = StatusOitiva.AGENDADA; //A oitiva inicia como agendada no cadastro
 
     @Column(name = "motivo_cancelamento", nullable = true)
     private String motivoCancelamento;
 
-    @NotNull(message = "A data do cadastro da oitiva deve ser informada")
-    @Column(name = "data_cadastro")
+    @CreationTimestamp
+    @Column(name = "data_cadastro", nullable = false, updatable = false)
     private LocalDateTime dataCadastro;
 
     @NotNull(message = "A oitiva deve possuir um procedimento vinculado")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "procedimento_id", nullable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_procedimento_"))
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_procedimento"))
     private Procedimento procedimento;
 
-    @NotNull(message = "A oitiva deve possuir um policial/delegado como responsável cadastrado")
+    @NotNull(message = "A oitiva deve possuir uma parte intimada cadastrada")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsavel_id", nullable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_usuario_responsavel"))
-    private Usuario usuarioResponsavel;
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_intimada"))
+    private Usuario parteIntimada;
 
-    @NotNull(message = "A oitiva deve possuir uma parte cadastrada para ser ouvida")
+    @NotNull(message = "A oitiva deve registrar o usuário que a cadastrou")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cadastrado_por_id", nullable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_usuario_cadastrado"))
-    private Usuario usuarioCadastrado;
+    private Usuario cadastradoPor;
+
+    @Size(min = 1, message = "A oitiva deve possuir ao menos uma parte")
+    @OneToMany(mappedBy = "oitiva", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OitivaParte> partes = new ArrayList<>();
+
+    public void adicionarParte(OitivaParte parte){
+        parte.setOitiva(this);
+        this.partes.add(parte);
+    }
+
+    public void removerOitiva(OitivaParte parte) {
+        this.partes.remove(parte);
+        parte.setOitiva(null);
+    }
 
 
 }

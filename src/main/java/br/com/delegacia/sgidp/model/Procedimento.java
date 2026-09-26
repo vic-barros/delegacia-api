@@ -3,6 +3,7 @@ package br.com.delegacia.sgidp.model;
 import br.com.delegacia.sgidp.enums.StatusProcedimento;
 import br.com.delegacia.sgidp.enums.TipoProcedimento;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
@@ -40,7 +41,7 @@ public class Procedimento {
     @Column(name = "ano", nullable = false)
     private Integer anoProcedimento;
 
-    @NotNull(message = "O campo do crime do procedimento não pode ser nulo")
+    @NotBlank(message = "O campo do crime do procedimento não pode ser nulo ou vazio")
     @Column(name = "crime", nullable = false)
     private String crime;
 

@@ -7,8 +7,7 @@ public enum StatusOitiva {
 
     AGENDADA("Agendada"),
     CONCLUIDA("Concluída"),
-    DESMARCADA("Desmarcada"),
-    REMARCADA ("Remarcada");
+    DESMARCADA("Desmarcada");
 
     private final String descricao;
 

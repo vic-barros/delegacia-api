@@ -1,8 +1,11 @@
 package br.com.delegacia.sgidp.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum TipoParte {
 
-    VITIMA("Vítma"),
+    VITIMA("Vítima"),
     INVESTIGADO("Investigado"),
     TESTEMUNHA("Testemunha");
 
