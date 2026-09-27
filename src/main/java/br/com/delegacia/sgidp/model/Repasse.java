@@ -27,7 +27,7 @@ public class Repasse {
     @Column(name = "status", nullable = false)
     private StatusRepasse statusRepasse = StatusRepasse.PENDENTE; //status repasse inicia como pendente
 
-    @Column(name = "justificativa_status", length = 500)
+    @Column(name = "justificativa_recusa", length = 500)
     private String justificativaRecusa;
 
     @CreationTimestamp
@@ -35,7 +35,6 @@ public class Repasse {
     private LocalDateTime dataSolicitacao;
 
     // Nula enquanto o repasse estiver PENDENTE; preenchida em aceitar()/recusar()
-    @CreationTimestamp
     @Column(name = "data_resposta")
     private LocalDateTime dataResposta;
 
@@ -53,8 +52,8 @@ public class Repasse {
 
     @NotNull(message = "O repaase do procedimento deve ter um usuário destinatário")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cadastrado_por_id", nullable = false, updatable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_repasse_solicitante"))
+    @JoinColumn(name = "destinatario_id", nullable = false, updatable = false,
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_repasse_destinatario"))
     private Usuario destinatario;
 
     public void aceitar(){
