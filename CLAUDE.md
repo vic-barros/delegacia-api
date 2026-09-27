@@ -24,7 +24,13 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - Relacionamentos: preferir `@ManyToOne(fetch = FetchType.LAZY)` unidirecional; `@OneToMany` só quando necessário.
 - Validação de entrada com Bean Validation nos DTOs; senhas com BCrypt.
 - Tabelas de histórico (`historico_custodia`, `historico_status_procedimento`, `historico_situacao_veiculo`)
-  são imutáveis: só inserção (`@Immutable` ou `updatable = false`). Nunca sobrescrever registro anterior.
+  são imutáveis: só inserção. Padrão (ver `HistoricoStatusProcedimento`): `@Immutable` (Hibernate) + só `@Getter`
+  (sem `@Setter`, exceção justificada à regra geral) + construtor com todos os dados + `@NoArgsConstructor(access =
+  PROTECTED)`; data via `@CreationTimestamp`; responsável vem do usuário autenticado. Gravar a mudança de estado da
+  entidade e o histórico no mesmo método `@Transactional`. Sem `@OneToMany` na entidade de origem: consultar via
+  repository (ex.: `findByProcedimentoIdOrderByDataTransicaoAsc`).
+  Exceção: `historico_custodia` precisa atualizar `dataFim` ao fechar a custódia, então não pode ser `@Immutable`
+  inteira — usar `updatable = false` nas demais colunas.
 - Nomes no banco: sequence `seq_<tabela>`; FK `fk_<tabela>_<referência>` (ex.: `fk_usuario_role`);
   unique `unique_<coluna>` declarada só na `@Table` (sem `unique = true` duplicado na `@Column`).
 - Atributos Java em camelCase com `@Column(name = "snake_case")` quando o nome da coluna diferir
@@ -42,19 +48,21 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 
 ## Modelo de domínio
 
+As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos Java reais; colunas em snake_case).
+
 | Entidade | Pontos-chave |
 |---|---|
-| `Role` | catálogo extensível; `acesso` varchar UNIQUE (não é enum), no padrão Spring Security (`ROLE_ADMIN`, `ROLE_DELEGADO`, `ROLE_POLICIAL`, `ROLE_ESTAGIARIO`); `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
-| `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `status: StatusUsuario`, FK `role` (N:1). **Sem e-mail** |
-| `Procedimento` | `tipo: TipoProcedimento`, `numero: Long` (bigint; só dígitos, sem zeros à esquerda — formatação fica na UI), `ano: Integer`, `crime`, `dataAbertura`, `dataRemessaFinal`, `protocoloRemessaFinal`, `status`, FK `detentorAtual` -> usuario. **UNIQUE (tipo, numero, ano)** |
-| `HistoricoStatusProcedimento` | `statusAnterior`, `statusNovo`, `motivo` (texto livre, ex. cota judicial/ministerial), `dataTransicao`, FKs `procedimento`, `responsavel` |
-| `Repasse` | `status: StatusRepasse`, `justificativaRecusa`, `dataSolicitacao`, `dataResposta`, FKs `procedimento`, `solicitante`, `destinatario` (solicitante != destinatario) |
-| `HistoricoCustodia` | `dataInicio`, `dataFim` (null = custódia atual), `origem: OrigemCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (nullable) |
-| `Oitiva` | `dataHora`, `status: StatusOitiva`, `motivoCancelamento`, `dataCadastro` (automático), FKs `procedimento`, `responsavel`, `cadastradoPor` |
+| `Role` | `acesso` (UNIQUE, não é enum, padrão `ROLE_ADMIN`/`ROLE_DELEGADO`/`ROLE_POLICIAL`/`ROLE_ESTAGIARIO`), `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
+| `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `statusUsuario: StatusUsuario` (coluna `status`), FK `role` (N:1). **Sem e-mail** |
+| `Procedimento` | `tipoProcedimento` (coluna `tipo`), `numeroProcedimento: Long` (coluna `numero`, bigint; só dígitos, formatação na UI), `anoProcedimento: Integer` (coluna `ano`), `crime`, `dataAbertura`/`dataRemessaFinal` (`LocalDate`), `protocoloRemessaFinal`, `statusProcedimento` (coluna `status`), FK `detentorAtual` (`detentor_atual_id`). **UNIQUE (tipo, numero, ano)**. Busca derivada: `findByTipoProcedimentoAndNumeroProcedimentoAndAnoProcedimento` |
+| `HistoricoStatusProcedimento` | `@Immutable`. `statusAnterior` (nullable: registro da criação), `statusNovo`, `motivo` (500), `dataTransicao`, FKs `procedimento`, `responsavel` |
+| `Repasse` | `statusRepasse` (coluna `status`, inicia PENDENTE), `justificativaRecusa` (500), `dataSolicitacao` (`@CreationTimestamp`), `dataResposta` (null até responder), FKs `procedimento`, `solicitante`, `destinatario`. CHECK `solicitante_id <> destinatario_id` via `@Table(check = @CheckConstraint)`. Métodos `aceitar()` / `recusar(justificativa)` preenchem status e `dataResposta` |
+| `HistoricoCustodia` | `dataInicio` (`@CreationTimestamp`), `dataFim` (null = custódia atual; única coluna atualizável), `origem: OrigemHistoricoCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (`@OneToOne` LAZY, nullable). Construtor `(procedimento, usuario, origem, repasseOrigem)`; `encerrar()` preenche `dataFim` (erro se já encerrada). **Não é `@Immutable`** |
+| `Oitiva` | `dataHora` (atualizável: remarcação), `statusOitiva` (coluna `status`, inicia AGENDADA), `motivoCancelamento`, `dataCadastro` (`@CreationTimestamp`), FKs `procedimento`, `responsavel`, `cadastradoPor` (`updatable = false`), `partes: List<OitivaParte>` (composição) |
 | `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`), FK `oitiva`. Construtor `(tipoParte, nomeParte)` + construtor vazio `protected` |
-| `Notificacao` | `tipoNotificacao` (coluna `tipo`), `mensagem`, `lida` (inicia `false`), `dataCriacao` (`@CreationTimestamp`), `referenciaId` (Long, sem FK: id do registro de origem, tabela definida pelo tipo), FK `usuarioDestinatario`. Índice `(usuario_destinatario_id, lida)` |
-| `Veiculo` | `tipoVeiculo`, `lacre` UK (gerado, imutável), `marca`, `modelo`, `cor`, `placa`/`chassi` (nullable), `motor`, `caracteristicasVisuais`, `pericia: Pericia`, `situacao: SituacaoVeiculo` (inicial `NA_DEPOL`), `localizacaoPatio` (nullable), `observacoes`, FK `procedimento` |
-| `HistoricoSituacaoVeiculo` | `situacaoAnterior`, `situacaoNova`, `motivo`, `dataTransicao`, FKs `veiculo`, `responsavel` |
+| `Notificacao` | `tipoNotificacao` (coluna `tipo`), `mensagem`, `lida: Boolean` (inicia `false`), `dataCriacao` (`@CreationTimestamp`), `referenciaId` (Long, sem FK: id do registro de origem, tabela definida pelo tipo), FK `usuarioDestinatario`. Índice `(usuario_destinatario_id, lida)` |
+| `Veiculo` | `tipoVeiculo`, `lacre` (UK, `length = 15`, `updatable = false`, sem setter; `definirLacre()`), `marca`, `modelo`, `cor`, `placa`/`chassi`/`motor` (nullable), `caracteristicasVisuais`/`observacoes` (`TEXT`), `statusPericia: StatusPericia` (coluna `pericia`), `situacaoVeiculo` (coluna `situacao`, inicia `NA_DEPOL`), FK `procedimento`. **Sem `localizacaoPatio`** (a situação já indica onde o veículo está) |
+| `HistoricoSituacaoVeiculo` | `@Immutable`. `situacaoAnterior` (nullable), `situacaoNova`, `motivo` (500), `dataTransicao`, FKs `veiculo`, `responsavel` |
 
 ### Enums
 
@@ -63,10 +71,10 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - `StatusProcedimento`: EM_ANDAMENTO, ARQUIVADO
 - `StatusOitiva`: AGENDADA, CONCLUIDA, DESMARCADA (remarcar = editar data/hora mantendo AGENDADA; não há status REMARCADA)
 - `StatusRepasse`: PENDENTE, ACEITO, RECUSADO
-- `OrigemCustodia`: CADASTRO_INICIAL, REPASSE
+- `OrigemHistoricoCustodia`: CADASTRO_INICIAL, REPASSE
 - `TipoParte`: INVESTIGADO, TESTEMUNHA, VITIMA
 - `SituacaoVeiculo`: NA_DEPOL, EM_PATIO, DEVOLVIDO, DESCARTADO
-- `Pericia`: SEM_PERICIA, PERICIA_EM_ANDAMENTO, PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA
+- `StatusPericia`: SEM_PERICIA, PERICIA_EM_ANDAMENTO, PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA
 - `TipoNotificacao`: OITIVA_PROXIMA (-> oitiva), REPASSE_RECEBIDO / REPASSE_ACEITO / REPASSE_RECUSADO (-> repasse),
   CADASTRO_PENDENTE (-> usuario). Entre parênteses: tabela para onde aponta `referenciaId`
 
@@ -78,8 +86,9 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
   Arquivar exige que não haja repasse PENDENTE; procedimento arquivado não aceita repasse; reabertura volta
   para EM_ANDAMENTO com motivo livre e registro em histórico.
-- **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda (fecha `dataFim` do histórico
-  atual e abre um novo com origem REPASSE).
+- **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
+  `@Transactional`: `repasse.aceitar()`, `custodiaAtual.encerrar()`, novo `HistoricoCustodia(..., REPASSE, repasse)`
+  e `procedimento.setDetentorAtual(destinatario)`.
 - **Oitiva**: conflito de horário é verificado por responsável; oitiva CONCLUIDA/DESMARCADA não é editável.
   Desmarcar exige motivo (`motivoCancelamento`). Remarcar só altera `dataHora`. `dataCadastro` via
   `@CreationTimestamp`; `cadastradoPor` vem do usuário autenticado (JWT), nunca do formulário.
@@ -89,15 +98,24 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - **Notificação**: `referenciaId` só é preenchido depois de salvar o registro de origem (antes o id é nulo).
   A tarefa agendada de OITIVA_PROXIMA checa `existsByTipoNotificacaoAndReferenciaId` antes de criar, para não
   repetir. Só o próprio destinatário pode marcar a notificação como lida.
-- **Lacre do veículo**: gerado na camada de service, formato `LAC-AAAA-NNNNNN` (ano corrente + sequencial de
-  6 dígitos de uma sequence dedicada do banco, separada da sequence do id). Não usar `@PrePersist` com o id
-  (o id ainda é nulo nesse momento).
+- **Lacre do veículo**: gerado no service, formato `LAC-AAAA-NNNNNN` (`String.format("LAC-%d-%06d", ano, n)`).
+  O número vem da sequence `seq_lacre_veiculo`, criada em `src/main/resources/schema.sql` (o Hibernate não cria
+  sequence que não é de id; exige `spring.sql.init.mode=always`). Leitura via SQL nativo justificado (RNF06):
+  `@Query(value = "SELECT nextval('seq_lacre_veiculo')", nativeQuery = true)` no `VeiculoRepository`. A numeração
+  não reinicia por ano e pode ter lacunas. Não usar `@PrePersist` com o id (ainda é nulo nesse momento).
+  Comentários em `schema.sql` usam `--` (`#` quebra a inicialização). Ao criar `data.sql` (seed de roles/admin),
+  acrescentar `spring.jpa.defer-datasource-initialization=true`.
 - **Situação do veículo**: começa em NA_DEPOL. Transições **não são bloqueadas** por decisão de projeto
   (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação na UI).
-  Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`. Ir para EM_PATIO exige `localizacaoPatio`.
+  Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`.
   Nova situação igual à atual é rejeitada.
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
   Estagiário só lê oitivas e veículos, participa de posse/repasse, não arquiva nem registra remessa.
+
+## Próximos passos
+
+- Repositories, services e controllers (DTOs com Bean Validation); configuração do Spring Security/JWT;
+  seed de roles e Admin (`data.sql` ou `CommandLineRunner`).
 
 ## Decisões em aberto
 
