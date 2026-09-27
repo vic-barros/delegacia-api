@@ -10,7 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "veiculo ", uniqueConstraints = {
+@Table(name = "veiculo", uniqueConstraints = {
 @UniqueConstraint(name = "unique_lacre", columnNames = { "lacre" })})
 @SequenceGenerator(name = "seq_veiculo", sequenceName = "seq_veiculo", allocationSize = 1, initialValue = 1)
 @Getter
@@ -21,11 +21,11 @@ public class Veiculo {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_veiculo")
     private Long id;
 
-    @NotNull(message = "O tipo do veículo deve ser informado")
+    @NotBlank(message = "O tipo do veículo deve ser informado")
     @Column(name = "tipo_veiculo", nullable = false)
     private String tipoVeiculo;
 
-    @NotBlank(message = "O lacre do vepiuclo deve ser gerado antes de salvar")
+    @NotBlank(message = "O lacre do veículo deve ser gerado antes de salvar")
     @Setter(AccessLevel.NONE) //Ninguém altera por setter
     @Column(name = "lacre", nullable = false, updatable = false, length = 15)
     private String lacre;
@@ -42,7 +42,6 @@ public class Veiculo {
     @Column(name = "cor", nullable = false)
     private String cor;
 
-
     @Column(name = "placa", nullable = true)
     private String placa;
 
@@ -52,7 +51,7 @@ public class Veiculo {
     @Column(name = "motor", nullable = true)
     private String motor;
 
-    @Column(name = "caracteristicas_visuais", nullable = true)
+    @Column(name = "caracteristicas_visuais", columnDefinition = "TEXT")
     private String caracteristicasVisuais;
 
     @NotNull(message = "O status da perícia deve ser informado")
@@ -65,7 +64,7 @@ public class Veiculo {
     @Column(name = "situacao", nullable = false)
     private SituacaoVeiculo situacaoVeiculo = SituacaoVeiculo.NA_DEPOL;
 
-    @Column(name = "observacoes", nullable = true)
+    @Column(name = "observacoes", columnDefinition = "TEXT")
     private String observacoes;
 
     @NotNull(message = "O veículo deve ter um procedimento vinculado")
