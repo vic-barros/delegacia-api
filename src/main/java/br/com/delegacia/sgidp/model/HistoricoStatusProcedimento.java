@@ -33,7 +33,7 @@ public class HistoricoStatusProcedimento {
     @Column(name = "status_novo", nullable = false)
     private StatusProcedimento statusNovo;
 
-    @NotBlank(message = "O motivo da mudança de status deve ser motivado")
+    @NotBlank(message = "O motivo da mudança de status deve ser informado")
     @Column(name = "motivo", nullable = false, length = 500)
     private String motivo;
 
