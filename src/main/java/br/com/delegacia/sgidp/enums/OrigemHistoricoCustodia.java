@@ -2,8 +2,8 @@ package br.com.delegacia.sgidp.enums;
 
 public enum OrigemHistoricoCustodia {
 
-    CADASTRO_INICIAL("Data do Cadastro Inicial do Procedimento"),
-    REPASSE("Data do Repasse do Procedimento");
+    CADASTRO_INICIAL("Cadastro Inicial"),
+    REPASSE("Repasse");
 
     private final String descricao;
 

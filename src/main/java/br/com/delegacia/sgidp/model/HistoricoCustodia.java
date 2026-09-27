@@ -7,14 +7,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Immutable;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "historico_custodia")
 @SequenceGenerator(name = "seq_historico_custodia", sequenceName = "seq_historico_custodia", allocationSize = 1, initialValue = 1)
-@Getter //Só getter: histórico não se altera
+@Getter // Só getter; a única alteração permitida é encerrar()
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class HistoricoCustodia {
 
@@ -23,35 +22,48 @@ public class HistoricoCustodia {
     private Long id;
 
     @CreationTimestamp
-    @NotNull(message = "A data do início do repasse deve ser informada")
     @Column(name = "data_inicio", nullable = false, updatable = false)
     private LocalDateTime dataInicio;
 
-    @CreationTimestamp
-    @Column(name = "data_fim", nullable = true, updatable = true)
+    // Nula = custódia atual. Única coluna atualizável: preenchida em encerrar()
+    @Column(name = "data_fim")
     private LocalDateTime dataFim;
 
-    @NotNull(message = "A origem do histórico de custódia deve ser informado")
+    @NotNull(message = "A origem da custódia deve ser informada")
     @Enumerated(EnumType.STRING)
-    @Column(name = "origem", nullable = false)
+    @Column(name = "origem", nullable = false, updatable = false)
     private OrigemHistoricoCustodia origem;
 
-    @NotNull(message = "O histórico do repasse deve ter um procedimento vinculado")
+    @NotNull(message = "A custódia deve estar vinculada a um procedimento")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "procedimento_id", nullable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_historico_custodia_procedimento"))
+    @JoinColumn(name = "procedimento_id", nullable = false, updatable = false,
+            foreignKey = @ForeignKey(name = "fk_historico_custodia_procedimento"))
     private Procedimento procedimento;
 
-    @NotNull(message = "O usuário vinculado ao histórico de repasse deve ser informado")
+    @NotNull(message = "A custódia deve estar vinculada a um usuário")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false, updatable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_historico_custodia_usuario"))
+            foreignKey = @ForeignKey(name = "fk_historico_custodia_usuario"))
     private Usuario usuario;
 
-    @OneToOne(optional = true)
-    @JoinColumn(name = "repasse_origem_id", nullable = true, updatable = false,
-            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_historico_custodia_usuario"))
+    // Nulo quando a origem é CADASTRO_INICIAL
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "repasse_origem_id", updatable = false,
+            foreignKey = @ForeignKey(name = "fk_historico_custodia_repasse"))
     private Repasse repasseOrigem;
 
+    public HistoricoCustodia(Procedimento procedimento, Usuario usuario,
+                             OrigemHistoricoCustodia origem, Repasse repasseOrigem) {
+        this.procedimento = procedimento;
+        this.usuario = usuario;
+        this.origem = origem;
+        this.repasseOrigem = repasseOrigem;
+    }
 
+    public void encerrar() {
+        if (this.dataFim != null) {
+            throw new IllegalStateException("Esta custódia já foi encerrada");
+        }
+        this.dataFim = LocalDateTime.now();
+    }
 }
