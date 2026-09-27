@@ -34,7 +34,7 @@ public class Notificacao {
     private String mensagem;
 
     @NotNull
-    @Column(name = "lida")
+    @Column(name = "lida", nullable = false)
     private Boolean lida = false;
 
     @CreationTimestamp
