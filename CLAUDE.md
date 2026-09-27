@@ -24,7 +24,13 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - Relacionamentos: preferir `@ManyToOne(fetch = FetchType.LAZY)` unidirecional; `@OneToMany` só quando necessário.
 - Validação de entrada com Bean Validation nos DTOs; senhas com BCrypt.
 - Tabelas de histórico (`historico_custodia`, `historico_status_procedimento`, `historico_situacao_veiculo`)
-  são imutáveis: só inserção (`@Immutable` ou `updatable = false`). Nunca sobrescrever registro anterior.
+  são imutáveis: só inserção. Padrão (ver `HistoricoStatusProcedimento`): `@Immutable` (Hibernate) + só `@Getter`
+  (sem `@Setter`, exceção justificada à regra geral) + construtor com todos os dados + `@NoArgsConstructor(access =
+  PROTECTED)`; data via `@CreationTimestamp`; responsável vem do usuário autenticado. Gravar a mudança de estado da
+  entidade e o histórico no mesmo método `@Transactional`. Sem `@OneToMany` na entidade de origem: consultar via
+  repository (ex.: `findByProcedimentoIdOrderByDataTransicaoAsc`).
+  Exceção: `historico_custodia` precisa atualizar `dataFim` ao fechar a custódia, então não pode ser `@Immutable`
+  inteira — usar `updatable = false` nas demais colunas.
 - Nomes no banco: sequence `seq_<tabela>`; FK `fk_<tabela>_<referência>` (ex.: `fk_usuario_role`);
   unique `unique_<coluna>` declarada só na `@Table` (sem `unique = true` duplicado na `@Column`).
 - Atributos Java em camelCase com `@Column(name = "snake_case")` quando o nome da coluna diferir
@@ -47,7 +53,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 | `Role` | catálogo extensível; `acesso` varchar UNIQUE (não é enum), no padrão Spring Security (`ROLE_ADMIN`, `ROLE_DELEGADO`, `ROLE_POLICIAL`, `ROLE_ESTAGIARIO`); `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
 | `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `status: StatusUsuario`, FK `role` (N:1). **Sem e-mail** |
 | `Procedimento` | `tipo: TipoProcedimento`, `numero: Long` (bigint; só dígitos, sem zeros à esquerda — formatação fica na UI), `ano: Integer`, `crime`, `dataAbertura`, `dataRemessaFinal`, `protocoloRemessaFinal`, `status`, FK `detentorAtual` -> usuario. **UNIQUE (tipo, numero, ano)** |
-| `HistoricoStatusProcedimento` | `statusAnterior`, `statusNovo`, `motivo` (texto livre, ex. cota judicial/ministerial), `dataTransicao`, FKs `procedimento`, `responsavel` |
+| `HistoricoStatusProcedimento` | `statusAnterior` (nullable: registro da criação não tem anterior), `statusNovo`, `motivo` (texto livre, ex. cota judicial/ministerial), `dataTransicao`, FKs `procedimento`, `responsavel` |
 | `Repasse` | `status: StatusRepasse`, `justificativaRecusa`, `dataSolicitacao`, `dataResposta`, FKs `procedimento`, `solicitante`, `destinatario` (solicitante != destinatario) |
 | `HistoricoCustodia` | `dataInicio`, `dataFim` (null = custódia atual), `origem: OrigemCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (nullable) |
 | `Oitiva` | `dataHora`, `status: StatusOitiva`, `motivoCancelamento`, `dataCadastro` (automático), FKs `procedimento`, `responsavel`, `cadastradoPor` |
