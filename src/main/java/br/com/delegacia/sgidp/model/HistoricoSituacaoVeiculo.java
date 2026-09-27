@@ -55,11 +55,10 @@ public class HistoricoSituacaoVeiculo {
     private Usuario responsavel;
 
     public HistoricoSituacaoVeiculo(SituacaoVeiculo situacaoAnterior, SituacaoVeiculo situacaoNova,
-    String motivo, LocalDateTime dataTransicao, Veiculo veiculo, Usuario responsavel) {
+    String motivo, Veiculo veiculo, Usuario responsavel) {
         this.situacaoAnterior = situacaoAnterior;
         this.situacaoNova = situacaoNova;
         this.motivo = motivo;
-        this.dataTransicao = LocalDateTime.now();
         this.veiculo = veiculo;
         this.responsavel = responsavel;
     }
