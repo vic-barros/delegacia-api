@@ -52,7 +52,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 | `HistoricoCustodia` | `dataInicio`, `dataFim` (null = custódia atual), `origem: OrigemCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (nullable) |
 | `Oitiva` | `dataHora`, `status: StatusOitiva`, `motivoCancelamento`, `dataCadastro` (automático), FKs `procedimento`, `responsavel`, `cadastradoPor` |
 | `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`), FK `oitiva`. Construtor `(tipoParte, nomeParte)` + construtor vazio `protected` |
-| `Notificacao` | `tipo: TipoNotificacao`, `mensagem`, `lida`, `dataCriacao`, FK `usuarioDestinatario` |
+| `Notificacao` | `tipoNotificacao` (coluna `tipo`), `mensagem`, `lida` (inicia `false`), `dataCriacao` (`@CreationTimestamp`), `referenciaId` (Long, sem FK: id do registro de origem, tabela definida pelo tipo), FK `usuarioDestinatario`. Índice `(usuario_destinatario_id, lida)` |
 | `Veiculo` | `tipoVeiculo`, `lacre` UK (gerado, imutável), `marca`, `modelo`, `cor`, `placa`/`chassi` (nullable), `motor`, `caracteristicasVisuais`, `pericia: Pericia`, `situacao: SituacaoVeiculo` (inicial `NA_DEPOL`), `localizacaoPatio` (nullable), `observacoes`, FK `procedimento` |
 | `HistoricoSituacaoVeiculo` | `situacaoAnterior`, `situacaoNova`, `motivo`, `dataTransicao`, FKs `veiculo`, `responsavel` |
 
@@ -67,7 +67,8 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - `TipoParte`: INVESTIGADO, TESTEMUNHA, VITIMA
 - `SituacaoVeiculo`: NA_DEPOL, EM_PATIO, DEVOLVIDO, DESCARTADO
 - `Pericia`: SEM_PERICIA, PERICIA_EM_ANDAMENTO, PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA
-- `TipoNotificacao`: valores a definir (oitiva próxima, repasse recebido, repasse respondido)
+- `TipoNotificacao`: OITIVA_PROXIMA (-> oitiva), REPASSE_RECEBIDO / REPASSE_ACEITO / REPASSE_RECUSADO (-> repasse),
+  CADASTRO_PENDENTE (-> usuario). Entre parênteses: tabela para onde aponta `referenciaId`
 
 ## Regras de negócio decididas
 
@@ -85,6 +86,9 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   `Oitiva` é dona das partes (composição): `@OneToMany(mappedBy = "oitiva", cascade = ALL, orphanRemoval = true)`,
   `@Size(min = 1)`, lista sem setter; usar sempre `adicionarParte()`/`removerParte()`. `dataHora` precisa ser
   atualizável (remarcação); `dataCadastro` e `cadastradoPor` são `updatable = false`.
+- **Notificação**: `referenciaId` só é preenchido depois de salvar o registro de origem (antes o id é nulo).
+  A tarefa agendada de OITIVA_PROXIMA checa `existsByTipoNotificacaoAndReferenciaId` antes de criar, para não
+  repetir. Só o próprio destinatário pode marcar a notificação como lida.
 - **Lacre do veículo**: gerado na camada de service, formato `LAC-AAAA-NNNNNN` (ano corrente + sequencial de
   6 dígitos de uma sequence dedicada do banco, separada da sequence do id). Não usar `@PrePersist` com o id
   (o id ainda é nulo nesse momento).
