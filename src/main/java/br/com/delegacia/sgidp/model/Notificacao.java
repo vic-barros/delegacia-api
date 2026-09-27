@@ -33,7 +33,8 @@ public class Notificacao {
     @Column(name = "mensagem", nullable = false)
     private String mensagem;
 
-    @Column(name = "lida", nullable = false)
+    @NotNull
+    @Column(name = "lida")
     private Boolean lida = false;
 
     @CreationTimestamp
@@ -44,9 +45,9 @@ public class Notificacao {
     @Column(name = "referencia_id")
     private Long referenciaId;
 
-    @NotNull(message = "A oitiva deve possuir um usuário respnsável pela oitiva")
+    @NotNull(message = "A notificação deve possuir um usuário destinatário")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_destinatario_id", nullable = false,
+    @JoinColumn(name = "usuario_destinatario_id", nullable = false, updatable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_notificacao_usuario"))
     private Usuario usuarioDestinatario;
 }
