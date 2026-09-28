@@ -44,6 +44,21 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   HS256 com `JWT_SECRET`), sem filtro JWT manual. Só `POST /auth/login` emitindo access token (claims: login e
   papel; validade ~8h). Sem refresh token, sem blacklist/logout no servidor (logout = front descarta o token).
   Limitação aceita: usuário desativado mantém o token válido até expirar.
+  Implementação: `SecurityConfig` (BCrypt, `SecurityFilterChain` stateless, `/auth/login` público, resto autenticado,
+  `JwtEncoder`/`JwtDecoder` HS256 a partir de `JWT_SECRET` — mínimo 32 caracteres —, conversor que lê o claim `role`
+  sem prefixo). `TokenService.gerar(usuario)`: claims `sub` (login), `nome`, `role`, validade 8h.
+  `AuthService.login` (opção A, sem `UserDetailsService`): `findByLogin` → `passwordEncoder.matches` → status
+  APROVADO, senão `CredenciaisInvalidasException` (401, mensagem genérica) ou `CadastroNaoAprovadoException` (403).
+  Rotas: `POST /auth/login`, `GET /auth/usuario-logado` (lê do token via `@AuthenticationPrincipal Jwt`).
+  Evolução futura possível: `UserDetailsService` + `AuthenticationManager` trocando só o miolo do `AuthService`.
+- Pacotes: `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
+  `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, `security` (SecurityConfig,
+  TokenService, AuthService), `exception` (exceções de negócio + `GlobalExceptionHandler`), `config` (DadosIniciais).
+- Injeção por construtor com `@RequiredArgsConstructor` (campos `final`); não usar `@Autowired`. `@Value` do Spring
+  (`org.springframework.beans.factory.annotation.Value`, não o do Lombok) só para configuração.
+- Erros da API: lançar exceção de negócio e tratá-la no `GlobalExceptionHandler` (`@RestControllerAdvice`), que
+  devolve `ErroResponse(status, mensagem, detalhes, dataHora)`. Validação de DTO (`@Valid`) vira 400 com a lista de
+  campos em `detalhes`.
 - Textos de UI/mensagens e documentação em português.
 
 ## Modelo de domínio
@@ -112,10 +127,21 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
   Estagiário só lê oitivas e veículos, participa de posse/repasse, não arquiva nem registra remessa.
 
+## Ambiente e dados iniciais
+
+- Variáveis vêm do `.env` na raiz via `spring.config.import=optional:file:.env[.properties]` (`.env` no
+  `.gitignore`; `.env.example` versionado). Inclui `DB_*`, `JWT_SECRET`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`.
+- `config/DadosIniciais` (`CommandLineRunner`) cria as 4 roles e o Admin (APROVADO, senha BCrypt) se não existirem.
+- `ddl-auto=update` só acrescenta: nunca remove, renomeia nem muda tipo de coluna. Ao renomear campo/coluna ou
+  mudar tipo, recriar o banco de desenvolvimento (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`).
+
 ## Próximos passos
 
-- Repositories, services e controllers (DTOs com Bean Validation); configuração do Spring Security/JWT;
-  seed de roles e Admin (`data.sql` ou `CommandLineRunner`).
+Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
+contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → usuários (cadastro,
+aprovação, gestão) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
+notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
+Pendente para o frontend: configuração de CORS (Angular em `localhost:4200`).
 
 ## Decisões em aberto
 
