@@ -5,7 +5,6 @@ import br.com.delegacia.sgidp.dto.RoleResponseDto;
 import br.com.delegacia.sgidp.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,8 +19,8 @@ public class RoleController {
 
     // Rota pública: papéis que podem ser escolhidos no formulário de cadastro (sem Admin)
     @GetMapping("/cadastro")
-    public List<RoleResponseDto> listartPapeisCadastro(){
-        return roleService.listaPapeisCadastro();
+    public List<RoleResponseDto> listarPapeisCadastro() {
+        return roleService.listarPapeisCadastro();
     }
 
 }

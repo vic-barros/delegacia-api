@@ -1,11 +1,9 @@
 package br.com.delegacia.sgidp.repository;
 
 import br.com.delegacia.sgidp.enums.StatusUsuario;
-import br.com.delegacia.sgidp.model.Role;
 import br.com.delegacia.sgidp.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+
 
 import java.util.List;
 import java.util.Optional;

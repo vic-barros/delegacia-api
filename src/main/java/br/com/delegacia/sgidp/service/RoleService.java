@@ -15,7 +15,7 @@ public class RoleService {
     private final RoleRepository roleRepository;
     
     @Transactional(readOnly = true) //Avisa ao hibernate que é só leitura, assim, pula verificações de alteração
-    public List<RoleResponseDto> listaPapeisCadastro(){
+    public List<RoleResponseDto> listarPapeisCadastro(){
         return roleRepository.findByAcessoNotOrderByIdAsc("ROLE_ADMIN").stream()
                 .map(RoleResponseDto::de) //Transforma a lista de entidades em lista de DTO's
                 .toList();

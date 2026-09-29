@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 public record UsuarioCadastroRequestDto(
 
         @NotBlank(message = "O nome deve ser informado")
-        @Size(max = 255, message = "O nome deve ter no máxima 255 caracteres")
+        @Size(max = 150, message = "O nome deve ter no máxima 255 caracteres")
         String nome,
 
         @NotBlank(message = "A matrícula deve ser informada")
