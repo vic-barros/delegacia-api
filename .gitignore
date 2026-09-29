@@ -50,3 +50,6 @@ docs/diagramas/fonte/*.html
 docs/diagramas/fonte/*.json
 docs/diagramas/fonte/*.png
 docs/diagramas/fonte/*.pdf
+
+# Docker
+docker-compose.override.yml

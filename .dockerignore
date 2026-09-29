@@ -1,0 +1,15 @@
+.git
+.gitignore
+.github
+
+.idea
+.vscode
+
+target
+
+*.md
+
+.env
+*.env
+
+docs/
