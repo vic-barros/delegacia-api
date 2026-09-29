@@ -1,15 +1,51 @@
 services:
+
   postgres:
     image: postgres:18
     container_name: sgidp-postgres
+
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - sgidp-postgres-data:/var/lib/postgresql
+
     ports:
       - "${DB_PORT}:5432"
-  
+
+    networks:
+      - sgidp-network
+
+  api:
+    build: .
+    container_name: sgidp-api
+
+    depends_on:
+      - postgres
+
+    environment:
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_LOGIN: ${ADMIN_LOGIN}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGENS_PERMITIDAS: ${CORS_ORIGENS_PERMITIDAS}
+
+    ports:
+      - "8080:8080"
+
+    networks:
+      - sgidp-network
+
 volumes:
-  postgres_data:
+  sgidp-postgres-data:
+    name: sgidp-postgres-data
+
+networks:
+  sgidp-network:
+    name: sgidp-network
