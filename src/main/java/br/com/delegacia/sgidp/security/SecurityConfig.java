@@ -53,7 +53,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(rotas -> rotas
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        // Rotas Públicas: login, solicitação de cadastro e papéis do formulário de cadastro
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/usuarios/cadastro").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/roles/cadastro").permitAll()
+                        .requestMatchers("/error").permitAll()
+                        // Gestão de usuários: só Admin
+                        .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversorDePapeis())));
@@ -93,7 +98,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(Arrays.stream(origensPermitidas.split(",")).map(String::trim).toList());
+        config.setAllowedOrigins(Arrays.stream(origensPermitidas.split(",")).map(String::trim).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setMaxAge(3600L);
