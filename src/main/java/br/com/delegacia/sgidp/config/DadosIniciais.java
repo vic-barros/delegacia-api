@@ -1,10 +1,10 @@
 package br.com.delegacia.sgidp.config;
 
-import br.com.delegacia.sgidp.enums.StatusUsuario;
-import br.com.delegacia.sgidp.model.Role;
-import br.com.delegacia.sgidp.model.Usuario;
-import br.com.delegacia.sgidp.repository.RoleRepository;
-import br.com.delegacia.sgidp.repository.UsuarioRepository;
+import br.com.delegacia.sgidp.enums.user.StatusUsuario;
+import br.com.delegacia.sgidp.model.role.Role;
+import br.com.delegacia.sgidp.model.user.Usuario;
+import br.com.delegacia.sgidp.repository.role.RoleRepository;
+import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
