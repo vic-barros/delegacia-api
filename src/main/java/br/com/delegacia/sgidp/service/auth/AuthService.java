@@ -32,7 +32,7 @@ public class AuthService {
         switch (usuario.getStatusUsuario()) {
             case PENDENTE -> throw new CadastroNaoAprovadoException("Cadastro aguardando aprovação do administrador");
             case REJEITADO -> throw new CadastroNaoAprovadoException(
-                    "Cadastro rejeitado pelo administrador. Motivo " +
+                    "Cadastro rejeitado pelo administrador. Motivo: " +
                             usuario.getMotivoRejeicao());
             case DESATIVADO -> throw new CadastroNaoAprovadoException("Usuário desativado");
             case APROVADO -> {

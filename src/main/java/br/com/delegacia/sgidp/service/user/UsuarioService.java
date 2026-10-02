@@ -104,6 +104,7 @@ public class UsuarioService {
         return UsuarioResponseDto.de(usuario);
     }
 
+    @Transactional
     public UsuarioResponseDto rejeitar(Long id, UsuarioRejeicaoRequestDto dto) {
         Usuario usuario = buscarUsuario(id);
         exigirPendente(usuario, "rejeitados");

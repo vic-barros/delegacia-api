@@ -39,7 +39,6 @@ public class UsuarioController {
         return usuarioService.buscarPorId(id);
     }
 
-    @Transactional
     @PatchMapping("/{id}/aprovar")
     public UsuarioResponseDto aprovar(@PathVariable Long id,
                                       @RequestBody(required = false) @Valid
@@ -47,7 +46,6 @@ public class UsuarioController {
         return usuarioService.aprovar(id, dados);
     }
 
-    @Transactional
     @PatchMapping("/{id}/rejeitar")
     public UsuarioResponseDto rejeitar(@PathVariable Long id, @RequestBody @Valid UsuarioRejeicaoRequestDto dados) {
         return usuarioService.rejeitar(id, dados);
