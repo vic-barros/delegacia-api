@@ -47,4 +47,10 @@ public class Usuario {
     @JoinColumn(name = "role_id", nullable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_usuario_role"))
     private Role role;
+
+    // Novo atributo para rejeição de cadastro de usuário, permitindo a notificação na tela
+    // Como existe a unique de login e matricula, esse usuário não vai conseguir solicitar cadastro dps
+    // Situação para resolver dps, mas com a notificação basta para o projeto
+    @Column(name = "motivo_rejeicao", length = 500)
+    private String motivoRejeicao;
 }
