@@ -43,7 +43,8 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - JWT enxuto (decisão para o hackathon): usar o suporte nativo do Spring Security (OAuth2 Resource Server,
   HS256 com `JWT_SECRET`), sem filtro JWT manual. Só `POST /auth/login` emitindo access token (claims: login e
   papel; validade ~8h). Sem refresh token, sem blacklist/logout no servidor (logout = front descarta o token).
-  Limitação aceita: usuário desativado mantém o token válido até expirar.
+  Limitação aceita (MVP): usuário desativado mantém o token válido até expirar (até 8h) e pode agir nesse
+  intervalo, inclusive reativar a si mesmo. Melhoria futura: conferir o status a cada requisição (ver "Melhorias futuras").
   Implementação: `SecurityConfig` (BCrypt, `SecurityFilterChain` stateless, `/auth/login` público, resto autenticado,
   `JwtEncoder`/`JwtDecoder` HS256 a partir de `JWT_SECRET` — mínimo 32 caracteres —, conversor que lê o claim `role`
   sem prefixo; CORS via `.cors(Customizer.withDefaults())` + bean `CorsConfigurationSource` com origens de
@@ -107,6 +108,10 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   (CADASTRO_PENDENTE). Aprovar/rejeitar só a partir de PENDENTE; aprovar pode trocar o papel; rejeitar exige
   motivo, que o usuário vê ao tentar logar (sem notificação: ele não acessa o sistema). Login e matrícula de um
   rejeitado continuam reservados.
+- **Gestão (UC13/UC14)**: editar (nome, matrícula, papel; login não muda) só APROVADO ou DESATIVADO; na gestão o
+  papel ADMIN pode ser atribuído (promoção). O Admin não pode remover o próprio papel de Admin nem desativar a si
+  mesmo (evita lockout; login do Admin logado via `@AuthenticationPrincipal Jwt` → `jwt.getSubject()`, passado ao
+  service como `String`). Desativar só APROVADO; reativar só DESATIVADO. Redefinir senha (204) vale para qualquer status.
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
   Arquivar exige que não haja repasse PENDENTE; procedimento arquivado não aceita repasse; reabertura volta
@@ -153,6 +158,12 @@ contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ 
 aprovação, gestão) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
 notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
 CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
+
+## Melhorias futuras (fora do MVP)
+
+- Revogação imediata de acesso: validar o status do usuário a cada requisição (ex.: no conversor JWT do
+  `SecurityConfig`, buscando o usuário e recusando se não estiver APROVADO) ou manter lista de tokens revogados.
+- Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
 
 ## Decisões em aberto
 
