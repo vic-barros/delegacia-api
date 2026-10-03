@@ -43,7 +43,8 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - JWT enxuto (decisão para o hackathon): usar o suporte nativo do Spring Security (OAuth2 Resource Server,
   HS256 com `JWT_SECRET`), sem filtro JWT manual. Só `POST /auth/login` emitindo access token (claims: login e
   papel; validade ~8h). Sem refresh token, sem blacklist/logout no servidor (logout = front descarta o token).
-  Limitação aceita: usuário desativado mantém o token válido até expirar.
+  Limitação aceita (MVP): usuário desativado mantém o token válido até expirar (até 8h) e pode agir nesse
+  intervalo, inclusive reativar a si mesmo. Melhoria futura: conferir o status a cada requisição (ver "Melhorias futuras").
   Implementação: `SecurityConfig` (BCrypt, `SecurityFilterChain` stateless, `/auth/login` público, resto autenticado,
   `JwtEncoder`/`JwtDecoder` HS256 a partir de `JWT_SECRET` — mínimo 32 caracteres —, conversor que lê o claim `role`
   sem prefixo; CORS via `.cors(Customizer.withDefaults())` + bean `CorsConfigurationSource` com origens de
@@ -53,9 +54,13 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   APROVADO, senão `CredenciaisInvalidasException` (401, mensagem genérica) ou `CadastroNaoAprovadoException` (403).
   Rotas: `POST /auth/login`, `GET /auth/usuario-logado` (lê do token via `@AuthenticationPrincipal Jwt`).
   Evolução futura possível: `UserDetailsService` + `AuthenticationManager` trocando só o miolo do `AuthService`.
-- Pacotes: `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
-  `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, `security` (SecurityConfig,
-  TokenService, AuthService), `exception` (exceções de negócio + `GlobalExceptionHandler`), `config` (DadosIniciais).
+- Pacotes: camadas `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
+  `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, cada uma dividida em subpacotes
+  por domínio (nomes em inglês): `auth`, `user`, `role`, `procedure`, `custody`, `delegation` (repasse), `hearing`
+  (oitiva), `party`, `vehicle`, `examination` (perícia), `notification`. Ex.: `service/user/UsuarioService`,
+  `model/delegation/Repasse`. Fora das camadas: `security` (SecurityConfig, TokenService), `exception` (exceções
+  genéricas `RegraNegocioException` 400, `RecursoNaoEncontradoException` 404, `RecursoDuplicadoException` 409 +
+  `GlobalExceptionHandler`), `config` (DadosIniciais). `AuthService` fica em `service/auth`.
 - Injeção por construtor com `@RequiredArgsConstructor` (campos `final`); não usar `@Autowired`. `@Value` do Spring
   (`org.springframework.beans.factory.annotation.Value`, não o do Lombok) só para configuração.
 - Erros da API: lançar exceção de negócio e tratá-la no `GlobalExceptionHandler` (`@RestControllerAdvice`), que
@@ -70,7 +75,7 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 | Entidade | Pontos-chave |
 |---|---|
 | `Role` | `acesso` (UNIQUE, não é enum, padrão `ROLE_ADMIN`/`ROLE_DELEGADO`/`ROLE_POLICIAL`/`ROLE_ESTAGIARIO`), `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
-| `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `statusUsuario: StatusUsuario` (coluna `status`), FK `role` (N:1). **Sem e-mail** |
+| `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `statusUsuario: StatusUsuario` (coluna `status`), FK `role` (N:1), `motivoRejeicao` (500, nullable; preenchido ao rejeitar). **Sem e-mail** |
 | `Procedimento` | `tipoProcedimento` (coluna `tipo`), `numeroProcedimento: Long` (coluna `numero`, bigint; só dígitos, formatação na UI), `anoProcedimento: Integer` (coluna `ano`), `crime`, `dataAbertura`/`dataRemessaFinal` (`LocalDate`), `protocoloRemessaFinal`, `statusProcedimento` (coluna `status`), FK `detentorAtual` (`detentor_atual_id`). **UNIQUE (tipo, numero, ano)**. Busca derivada: `findByTipoProcedimentoAndNumeroProcedimentoAndAnoProcedimento` |
 | `HistoricoStatusProcedimento` | `@Immutable`. `statusAnterior` (nullable: registro da criação), `statusNovo`, `motivo` (500), `dataTransicao`, FKs `procedimento`, `responsavel` |
 | `Repasse` | `statusRepasse` (coluna `status`, inicia PENDENTE), `justificativaRecusa` (500), `dataSolicitacao` (`@CreationTimestamp`), `dataResposta` (null até responder), FKs `procedimento`, `solicitante`, `destinatario`. CHECK `solicitante_id <> destinatario_id` via `@Table(check = @CheckConstraint)`. Métodos `aceitar()` / `recusar(justificativa)` preenchem status e `dataResposta` |
@@ -98,7 +103,15 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 ## Regras de negócio decididas
 
 - **Login** apenas por `login` + senha (sem e-mail, simplificação para o hackathon). Usuário PENDENTE, REJEITADO
-  ou DESATIVADO não autentica.
+  ou DESATIVADO não autentica (403 com mensagem por status; o REJEITADO vê o motivo da rejeição).
+- **Cadastro/aprovação (UC02/UC03)**: cadastro público nasce PENDENTE (nunca como ROLE_ADMIN) e notifica os Admins
+  (CADASTRO_PENDENTE). Aprovar/rejeitar só a partir de PENDENTE; aprovar pode trocar o papel; rejeitar exige
+  motivo, que o usuário vê ao tentar logar (sem notificação: ele não acessa o sistema). Login e matrícula de um
+  rejeitado continuam reservados.
+- **Gestão (UC13/UC14)**: editar (nome, matrícula, papel; login não muda) só APROVADO ou DESATIVADO; na gestão o
+  papel ADMIN pode ser atribuído (promoção). O Admin não pode remover o próprio papel de Admin nem desativar a si
+  mesmo (evita lockout; login do Admin logado via `@AuthenticationPrincipal Jwt` → `jwt.getSubject()`, passado ao
+  service como `String`). Desativar só APROVADO; reativar só DESATIVADO. Redefinir senha (204) vale para qualquer status.
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
   Arquivar exige que não haja repasse PENDENTE; procedimento arquivado não aceita repasse; reabertura volta
@@ -141,10 +154,16 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 ## Próximos passos
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
-contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → usuários (cadastro,
+contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → usuários (✅ UC02) (cadastro,
 aprovação, gestão) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
 notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
 CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
+
+## Melhorias futuras (fora do MVP)
+
+- Revogação imediata de acesso: validar o status do usuário a cada requisição (ex.: no conversor JWT do
+  `SecurityConfig`, buscando o usuário e recusando se não estiver APROVADO) ou manter lista de tokens revogados.
+- Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
 
 ## Decisões em aberto
 
