@@ -10,8 +10,8 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "usuario", uniqueConstraints = {
-        @UniqueConstraint(name = "unique_matricula", columnNames = { "matricula" }),
-        @UniqueConstraint(name = "unique_login", columnNames = { "login" }) })
+        @UniqueConstraint(name = "unique_matricula", columnNames = {"matricula"}),
+        @UniqueConstraint(name = "unique_login", columnNames = {"login"})})
 @SequenceGenerator(name = "seq_usuario", sequenceName = "seq_usuario", allocationSize = 1, initialValue = 1)
 @Getter
 @Setter
@@ -47,4 +47,9 @@ public class Usuario {
     @JoinColumn(name = "role_id", nullable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_usuario_role"))
     private Role role;
+
+    // Novo atributo para rejeição de cadastro de usuário, permitindo a exibição na tela na hora do login
+    // Como existe a unique de login e matricula, esse usuário não vai conseguir solicitar cadastro dps
+    @Column(name = "motivo_rejeicao", length = 500)
+    private String motivoRejeicao;
 }
