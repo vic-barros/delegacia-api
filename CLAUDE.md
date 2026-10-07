@@ -127,7 +127,11 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   atualizável (remarcação); `dataCadastro` e `cadastradoPor` são `updatable = false`.
 - **Notificação**: `referenciaId` só é preenchido depois de salvar o registro de origem (antes o id é nulo).
   A tarefa agendada de OITIVA_PROXIMA checa `existsByTipoNotificacaoAndReferenciaId` antes de criar, para não
-  repetir. Só o próprio destinatário pode marcar a notificação como lida.
+  repetir. Só o próprio destinatário pode marcar a notificação como lida (consultas filtradas por
+  `UsuarioDestinatarioLogin`; de outra pessoa = 404). Rotas: `GET /notificacoes[?lida=]`,
+  `GET /notificacoes/nao-lidas/contagem`, `PATCH /notificacoes/{id}/lida`, `PATCH /notificacoes/lidas`.
+  Assunto resolvido baixa o aviso de todos: aprovar/rejeitar cadastro chama
+  `notificacaoService.marcarComoLidas(CADASTRO_PENDENTE, usuarioId)` na mesma transação.
 - **Lacre do veículo**: gerado no service, formato `LAC-AAAA-NNNNNN` (`String.format("LAC-%d-%06d", ano, n)`).
   O número vem da sequence `seq_lacre_veiculo`, criada em `src/main/resources/schema.sql` (o Hibernate não cria
   sequence que não é de id; exige `spring.sql.init.mode=always`). Leitura via SQL nativo justificado (RNF06):
@@ -154,8 +158,8 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 ## Próximos passos
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
-contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → usuários (✅ UC02) (cadastro,
-aprovação, gestão) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
+contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → ✅ usuários (cadastro,
+aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
 notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
 CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
 
