@@ -140,9 +140,17 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   Comentários em `schema.sql` usam `--` (`#` quebra a inicialização). Ao criar `data.sql` (seed de roles/admin),
   acrescentar `spring.jpa.defer-datasource-initialization=true`.
 - **Situação do veículo**: começa em NA_DEPOL. Transições **não são bloqueadas** por decisão de projeto
-  (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação na UI).
-  Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`.
+  (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação).
+  Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`; o cadastro também gera (anterior `null` → NA_DEPOL).
   Nova situação igual à atual é rejeitada.
+- **Veículos (contrato)**: rotas `POST /veiculos`, `GET /veiculos[?lacre&placa&chassi&situacao&procedimentoId]`,
+  `GET /veiculos/{id}`, `GET /veiculos/{id}/historico`, `PUT /veiculos/{id}`, `PATCH /veiculos/{id}/situacao`.
+  GET para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial. **Procedimento ARQUIVADO aceita
+  veículo** (diferente de oitiva: o arquivamento encerra as diligências, não a destinação do veículo).
+  Confirmações via flag no corpo + 409 (`ConfirmacaoNecessariaException`): `confirmarDuplicidade` (placa/chassi de
+  veículo ativo NA_DEPOL/EM_PATIO; placa e chassi normalizados trim + maiúsculas) e `confirmarReversao` (sair de
+  DEVOLVIDO/DESCARTADO). O `PUT` edita só dados descritivos e perícia (RF26): não altera lacre, situação nem o
+  procedimento vinculado; essas edições não são rastreadas no MVP (ver "Melhorias futuras").
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
   Estagiário só lê oitivas e veículos, participa de posse/repasse, não arquiva nem registra remessa.
 
@@ -168,6 +176,10 @@ CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescent
 - Revogação imediata de acesso: validar o status do usuário a cada requisição (ex.: no conversor JWT do
   `SecurityConfig`, buscando o usuário e recusando se não estiver APROVADO) ou manter lista de tokens revogados.
 - Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
+- Rastreabilidade completa do veículo: troca de procedimento vinculado com motivo e histórico próprio, e registro
+  das edições de dados (placa, chassi, perícia...).
+- Auditoria técnica com Hibernate Envers (`@Audited` + tabelas `_aud`/`revinfo`, com listener gravando o login do
+  token): versões de todas as alterações, complementando os históricos de negócio (que guardam o motivo).
 
 ## Decisões em aberto
 
