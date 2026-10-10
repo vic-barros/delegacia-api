@@ -63,4 +63,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErroResponseDto> corpoInvalido(HttpMessageNotReadableException e) {
         return resposta(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido ou mal formatado");
     }
+
+    // Exceção para Erro 409 da Confirmação Necessária no Front
+    @ExceptionHandler(ConfirmacaoNecessariaException.class)
+    public ResponseEntity<ErroResponseDto>confirmacaoNecessaria(ConfirmacaoNecessariaException e){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResponseDto(HttpStatus.CONFLICT.value(),
+                e.getMessage(), List.of(e.getCampoConfirmacao())));
+    }
 }
