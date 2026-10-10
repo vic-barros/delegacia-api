@@ -69,7 +69,7 @@ public class VeiculoService {
         veiculoRepository.save(veiculo);
 
         historicoRepository.save(new HistoricoSituacaoVeiculo(
-                null, SituacaoVeiculo.NA_DEPOL, "Cadastro do veículos",
+                null, SituacaoVeiculo.NA_DEPOL, "Cadastro do veículo",
                 veiculo, responsavel));
 
         return VeiculoResponseDto.de(veiculo);

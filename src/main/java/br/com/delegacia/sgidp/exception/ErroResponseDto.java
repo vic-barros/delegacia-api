@@ -6,7 +6,6 @@ import java.util.List;
 public record ErroResponseDto(int status, String mensagem, List<String> detalhes, LocalDateTime dataHora) {
 
     public ErroResponseDto(int status, String mensagem) {
-
         this(status, mensagem, List.of(), LocalDateTime.now());
     }
 
