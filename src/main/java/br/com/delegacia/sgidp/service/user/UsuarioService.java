@@ -1,10 +1,7 @@
 package br.com.delegacia.sgidp.service.user;
 
 
-import br.com.delegacia.sgidp.dto.user.UsuarioAprovacaoRequestDto;
-import br.com.delegacia.sgidp.dto.user.UsuarioCadastroRequestDto;
-import br.com.delegacia.sgidp.dto.user.UsuarioResponseDto;
-import br.com.delegacia.sgidp.dto.user.UsuarioRejeicaoRequestDto;
+import br.com.delegacia.sgidp.dto.user.*;
 import br.com.delegacia.sgidp.enums.notification.TipoNotificacao;
 import br.com.delegacia.sgidp.enums.user.StatusUsuario;
 import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
@@ -114,6 +111,68 @@ public class UsuarioService {
         return UsuarioResponseDto.de(usuario);
     }
 
+    // UC13 - Editar nome, matrícula e papel. O login não muda (é a identidade no token)
+    @Transactional
+    public UsuarioResponseDto editar(Long id, UsuarioEdicaoRequestDto dto, String loginLogado) {
+
+        Usuario usuario = buscarUsuario(id);
+        if (usuario.getStatusUsuario() != StatusUsuario.APROVADO
+                && usuario.getStatusUsuario() != StatusUsuario.DESATIVADO) {
+            throw new RegraNegocioException("Somente usuários aprovados ou desativados podem ser editados");
+        }
+        if (usuarioRepository.existsByMatriculaAndIdNot(dto.matricula(), id)) {
+            throw new RecursoDuplicadoException("Matrícula já cadastrada para outro usuário");
+        }
+
+
+        // Na gestão o papel ADMIN é permitido (promoção); só não pode remover o próprio papel de Admin
+        Role novoPapel = roleRepository.findById(dto.roleId())
+                .orElseThrow(() -> new RegraNegocioException("Papel inválido"));
+        if (ehOProprioUsuario(usuario, loginLogado) &&
+                !ROLE_ADMIN.equals(novoPapel.getAcesso())) {
+            throw new RegraNegocioException("O Admin não pode remover o próprio papel de Admin");
+        }
+
+        usuario.setNome(dto.nome());
+        usuario.setMatricula((dto.matricula()));
+        usuario.setRole(novoPapel);
+        return UsuarioResponseDto.de(usuario);
+    }
+
+    @Transactional
+    public UsuarioResponseDto desativar(Long id, String loginLogado) {
+        Usuario usuario = buscarUsuario(id);
+        if (ehOProprioUsuario(usuario, loginLogado)) {
+            throw new RegraNegocioException("O Admin não pode desativar a si mesmo");
+        }
+        if ((usuario.getStatusUsuario() != StatusUsuario.APROVADO)) {
+            throw new RegraNegocioException("Somente usuários aprovados podem ser desativados");
+        }
+
+        usuario.setStatusUsuario(StatusUsuario.DESATIVADO);
+        return UsuarioResponseDto.de(usuario);
+    }
+
+    // UC13 - Reativar: só a partir de DESATIVADO
+    @Transactional
+    public UsuarioResponseDto reativar(Long id) {
+        Usuario usuario = buscarUsuario(id);
+        if (usuario.getStatusUsuario() != StatusUsuario.DESATIVADO) {
+            throw new RegraNegocioException("Somente usuários desativados podem ser reativados");
+        }
+
+        usuario.setStatusUsuario(StatusUsuario.APROVADO);
+        return UsuarioResponseDto.de(usuario);
+    }
+
+    // UC14 - Redefinir senha: o Admin define uma senha provisória, gravada com BCrypt
+    @Transactional
+    public void redefinirSenha(Long id, UsuarioRedefinicaoSenhaRequestDto dto) {
+        Usuario usuario = buscarUsuario(id);
+        usuario.setSenhaHash(passwordEncoder.encode(dto.novaSenha()));
+    }
+
+
     private Usuario buscarUsuario(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -135,6 +194,12 @@ public class UsuarioService {
             throw new RegraNegocioException("O papel de Admin não pode ser atribuído por este fluxo");
         }
         return role;
+    }
+
+
+    // Compara o usuário alvo da ação com quem está logado (login vindo do token)
+    private boolean ehOProprioUsuario(Usuario usuario, String loginLogado) {
+        return usuario.getLogin().equals(loginLogado);
     }
 
 
