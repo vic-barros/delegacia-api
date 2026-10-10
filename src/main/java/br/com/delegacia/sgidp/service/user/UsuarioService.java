@@ -97,6 +97,7 @@ public class UsuarioService {
             usuario.setRole(buscarPapelPermitido(dto.roleId()));
         }
         usuario.setStatusUsuario(StatusUsuario.APROVADO);
+        notificacaoService.marcarComoLidas(TipoNotificacao.CADASTRO_PENDENTE, usuario.getId());  // O cadastro foi resolvido: o aviso some para todos os Admins
         // Sem save(): o usuário foi carregado nesta transação e o Hibernate grava as mudanças no commit
         return UsuarioResponseDto.de(usuario);
     }
@@ -108,6 +109,7 @@ public class UsuarioService {
 
         usuario.setStatusUsuario(StatusUsuario.REJEITADO);
         usuario.setMotivoRejeicao(dto.motivo());
+        notificacaoService.marcarComoLidas(TipoNotificacao.CADASTRO_PENDENTE, usuario.getId());
         return UsuarioResponseDto.de(usuario);
     }
 
