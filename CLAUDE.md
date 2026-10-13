@@ -80,7 +80,7 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 | `HistoricoStatusProcedimento` | `@Immutable`. `statusAnterior` (nullable: registro da criação), `statusNovo`, `motivo` (500), `dataTransicao`, FKs `procedimento`, `responsavel` |
 | `Repasse` | `statusRepasse` (coluna `status`, inicia PENDENTE), `justificativaRecusa` (500), `dataSolicitacao` (`@CreationTimestamp`), `dataResposta` (null até responder), FKs `procedimento`, `solicitante`, `destinatario`. CHECK `solicitante_id <> destinatario_id` via `@Table(check = @CheckConstraint)`. Métodos `aceitar()` / `recusar(justificativa)` preenchem status e `dataResposta` |
 | `HistoricoCustodia` | `dataInicio` (`@CreationTimestamp`), `dataFim` (null = custódia atual; única coluna atualizável), `origem: OrigemHistoricoCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (`@OneToOne` LAZY, nullable). Construtor `(procedimento, usuario, origem, repasseOrigem)`; `encerrar()` preenche `dataFim` (erro se já encerrada). **Não é `@Immutable`** |
-| `Oitiva` | `dataHora` (atualizável: remarcação), `statusOitiva` (coluna `status`, inicia AGENDADA), `motivoCancelamento`, `dataCadastro` (`@CreationTimestamp`), FKs `procedimento`, `responsavel`, `cadastradoPor` (`updatable = false`), `partes: List<OitivaParte>` (composição) |
+| `Oitiva` | `dataHora` (atualizável: remarcação), `statusOitiva` (coluna `status`, inicia AGENDADA), `motivoCancelamento`, `dataCadastro` (`@CreationTimestamp`), FKs `procedimento`, `responsavel`, `cadastradoPor` (`updatable = false`), `alteradoPor` (nullable: último que editou/remarcou/desmarcou/concluiu), `partes: List<OitivaParte>` (composição). `motivoCancelamento` com 500 |
 | `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`), FK `oitiva`. Construtor `(tipoParte, nomeParte)` + construtor vazio `protected` |
 | `Notificacao` | `tipoNotificacao` (coluna `tipo`), `mensagem`, `lida: Boolean` (inicia `false`), `dataCriacao` (`@CreationTimestamp`), `referenciaId` (Long, sem FK: id do registro de origem, tabela definida pelo tipo), FK `usuarioDestinatario`. Índice `(usuario_destinatario_id, lida)` |
 | `Veiculo` | `tipoVeiculo`, `lacre` (UK, `length = 15`, `updatable = false`, sem setter; `definirLacre()`), `marca`, `modelo`, `cor`, `placa`/`chassi`/`motor` (nullable), `caracteristicasVisuais`/`observacoes` (`TEXT`), `statusPericia: StatusPericia` (coluna `pericia`), `situacaoVeiculo` (coluna `situacao`, inicia `NA_DEPOL`), FK `procedimento`. **Sem `localizacaoPatio`** (a situação já indica onde o veículo está) |
@@ -114,14 +114,27 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   service como `String`). Desativar só APROVADO; reativar só DESATIVADO. Redefinir senha (204) vale para qualquer status.
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
-  Arquivar exige que não haja repasse PENDENTE; procedimento arquivado não aceita repasse; reabertura volta
-  para EM_ANDAMENTO com motivo livre e registro em histórico.
+  Arquivar exige que não haja repasse PENDENTE nem oitiva AGENDADA (400 listando as datas: "conclua as já
+  realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
+  procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
+  registro em histórico.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
   `@Transactional`: `repasse.aceitar()`, `custodiaAtual.encerrar()`, novo `HistoricoCustodia(..., REPASSE, repasse)`
   e `procedimento.setDetentorAtual(destinatario)`.
-- **Oitiva**: conflito de horário é verificado por responsável; oitiva CONCLUIDA/DESMARCADA não é editável.
-  Desmarcar exige motivo (`motivoCancelamento`). Remarcar só altera `dataHora`. `dataCadastro` via
-  `@CreationTimestamp`; `cadastradoPor` vem do usuário autenticado (JWT), nunca do formulário.
+- **Oitiva**: Delegado, Policial e Estagiário agendam, editam, remarcam, desmarcam e concluem (o Estagiário conduz
+  oitivas sob supervisão e agenda para os policiais); Admin não acessa. Responsável: Delegado, Policial ou
+  Estagiário APROVADO. Procedimento ARQUIVADO não aceita oitiva (400 "Procedimento arquivado. É necessário
+  desarquivar para novas diligências."). Data/hora no passado é bloqueada no agendamento e na remarcação (`@Future`).
+  Conflito de horário por responsável (outra AGENDADA até 59 min antes/depois, ignorando a própria) **não bloqueia**:
+  409 `confirmarConflito` (agendar, remarcar, editar trocando o responsável). Oitiva CONCLUIDA/DESMARCADA não é
+  editável. Desmarcar exige motivo (`motivoCancelamento`). Remarcar só altera `dataHora`. Concluir é permitido a
+  qualquer momento; se for antes da data marcada (oitiva antecipada), `dataHora` vira o momento da conclusão.
+  "Atrasada" (AGENDADA com data passada, sem baixa) não é status salvo: é calculada na resposta (`atrasada`) e
+  filtrável (`?atrasadas=true`). `dataCadastro` via `@CreationTimestamp`; `cadastradoPor` e `alteradoPor` vêm do
+  usuário autenticado (JWT), nunca do formulário.
+  Rotas: `POST /oitivas`, `GET /oitivas[?dataInicio&dataFim&responsavelId&status&procedimentoId&minhas&atrasadas]`
+  (datas `yyyy-MM-dd`), `GET /oitivas/{id}`, `PUT /oitivas/{id}` (responsável + partes; a lista substitui a
+  anterior), `PATCH /oitivas/{id}/remarcar`, `PATCH /oitivas/{id}/desmarcar`, `PATCH /oitivas/{id}/concluir`.
   `Oitiva` é dona das partes (composição): `@OneToMany(mappedBy = "oitiva", cascade = ALL, orphanRemoval = true)`,
   `@Size(min = 1)`, lista sem setter; usar sempre `adicionarParte()`/`removerParte()`. `dataHora` precisa ser
   atualizável (remarcação); `dataCadastro` e `cadastradoPor` são `updatable = false`.
@@ -143,16 +156,17 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação).
   Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`; o cadastro também gera (anterior `null` → NA_DEPOL).
   Nova situação igual à atual é rejeitada.
-- **Veículos (contrato)**: rotas `POST /veiculos`, `GET /veiculos[?lacre&placa&chassi&situacao&procedimentoId]`,
+- **Veículos (contrato)**: rotas `POST /veiculos`, `GET /veiculos[?lacre&placa&chassi&motor&situacao&procedimentoId]`,
   `GET /veiculos/{id}`, `GET /veiculos/{id}/historico`, `PUT /veiculos/{id}`, `PATCH /veiculos/{id}/situacao`.
   GET para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial. **Procedimento ARQUIVADO aceita
   veículo** (diferente de oitiva: o arquivamento encerra as diligências, não a destinação do veículo).
-  Confirmações via flag no corpo + 409 (`ConfirmacaoNecessariaException`): `confirmarDuplicidade` (placa/chassi de
-  veículo ativo NA_DEPOL/EM_PATIO; placa e chassi normalizados trim + maiúsculas) e `confirmarReversao` (sair de
-  DEVOLVIDO/DESCARTADO). O `PUT` edita só dados descritivos e perícia (RF26): não altera lacre, situação nem o
+  Confirmações via flag no corpo + 409 (`ConfirmacaoNecessariaException`, nome da flag em `detalhes`):
+  `confirmarDuplicidade` (placa, chassi ou motor de veículo ativo NA_DEPOL/EM_PATIO; os três normalizados trim +
+  maiúsculas; na edição só o que mudou é verificado) e `confirmarReversao` (sair de DEVOLVIDO/DESCARTADO). O `PUT` edita só dados descritivos e perícia (RF26): não altera lacre, situação nem o
   procedimento vinculado; essas edições não são rastreadas no MVP (ver "Melhorias futuras").
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
-  Estagiário só lê oitivas e veículos, participa de posse/repasse, não arquiva nem registra remessa.
+  Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos;
+  participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem registra remessa.
 
 ## Ambiente e dados iniciais
 
@@ -167,9 +181,14 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
 contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → ✅ usuários (cadastro,
-aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
+aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → ✅ veículos →
 notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
 CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
+
+Pendente na documentação (`docx` e DER/diagramas), a atualizar ao fechar o módulo de oitivas: permissões do
+Estagiário em oitivas (perfis, UCs e diagrama de casos de uso); regras de oitiva acima (conflito com confirmação,
+procedimento arquivado, concluir antecipada, "atrasada"); `Oitiva.alteradoPor` e `motivoCancelamento` 500 no DER e
+no diagrama de classes; arquivar bloqueado por oitiva AGENDADA; veículos: duplicidade por motor e filtro `motor`.
 
 ## Melhorias futuras (fora do MVP)
 
@@ -178,6 +197,8 @@ CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescent
 - Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
 - Rastreabilidade completa do veículo: troca de procedimento vinculado com motivo e histórico próprio, e registro
   das edições de dados (placa, chassi, perícia...).
+- Notificação "oitiva sem baixa" (ex.: `OITIVA_SEM_BAIXA`) para o responsável quando uma oitiva AGENDADA passa
+  da data sem ser concluída ou desmarcada (tarefa agendada, junto da OITIVA_PROXIMA).
 - Auditoria técnica com Hibernate Envers (`@Audited` + tabelas `_aud`/`revinfo`, com listener gravando o login do
   token): versões de todas as alterações, complementando os históricos de negócio (que guardam o motivo).
 
