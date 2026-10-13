@@ -60,7 +60,7 @@ public class SecurityConfig {
                         // Gestão de usuários: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
-                        .requestMatchers("/procedimento/cadastro").hasAnyRole("DELEGADO", "POLICIAL")
+                        .requestMatchers(HttpMethod.POST, "/procedimento").hasAnyRole("DELEGADO", "POLICIAL")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversorDePapeis())));
