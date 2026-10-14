@@ -15,7 +15,6 @@ import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.procedure.HistoricoStatusProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +31,7 @@ public class ProcedimentoService {
 
     
     @Transactional
-    public ProcedimentoResponseDto cadastrar(ProcedimentoRequestDto dto) {
+    public ProcedimentoResponseDto cadastrar(ProcedimentoRequestDto dto, String login) {
 
        
         if (procedimentoRepository.existsByTipoProcedimentoAndNumeroProcedimentoAndAnoProcedimento(
@@ -61,13 +60,6 @@ public class ProcedimentoService {
             );
         }
 
-        
-        String login = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-
-        
         Usuario usuario = usuarioRepository.findByLogin(login)
                 .orElseThrow(() -> new RegraNegocioException(
                         "Usuário autenticado não encontrado"
