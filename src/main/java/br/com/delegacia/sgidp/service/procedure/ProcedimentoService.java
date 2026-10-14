@@ -7,10 +7,12 @@ import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
 import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
+import br.com.delegacia.sgidp.model.procedure.HistoricoStatusProcedimento;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
 import br.com.delegacia.sgidp.model.user.Usuario;
 import br.com.delegacia.sgidp.repository.custody.HistoricoCustodiaRepository;
 import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
+import br.com.delegacia.sgidp.repository.procedure.HistoricoStatusProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +27,7 @@ public class ProcedimentoService {
 
     private final ProcedimentoRepository procedimentoRepository;
     private final HistoricoCustodiaRepository historicoCustodiaRepository;
+    private final HistoricoStatusProcedimentoRepository historicoStatusProcedimentoRepository;
     private final UsuarioRepository usuarioRepository;
 
     
@@ -94,6 +97,10 @@ public class ProcedimentoService {
         );
 
         historicoCustodiaRepository.save(historico);
+
+        historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(
+                procedimento, null, StatusProcedimento.EM_ANDAMENTO, "Cadastro do procedimento", usuario
+        ));
 
         return ProcedimentoResponseDto.de(procedimento);
     }

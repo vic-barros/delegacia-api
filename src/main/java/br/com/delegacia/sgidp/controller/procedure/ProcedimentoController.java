@@ -18,7 +18,7 @@ import jakarta.validation.Valid;
 public class ProcedimentoController {
     private final ProcedimentoService procedimentoService;
 
-    @PostMapping("/")
+    @PostMapping()
     @ResponseStatus(HttpStatus.CREATED)
     public ProcedimentoResponseDto criarProcedimento(@RequestBody @Valid ProcedimentoRequestDto dadosDto) {
         return procedimentoService.cadastrar(dadosDto);
