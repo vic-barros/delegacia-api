@@ -97,8 +97,8 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 - `TipoParte`: INVESTIGADO, TESTEMUNHA, VITIMA
 - `SituacaoVeiculo`: NA_DEPOL, EM_PATIO, DEVOLVIDO, DESCARTADO
 - `StatusPericia`: SEM_PERICIA, PERICIA_EM_ANDAMENTO, PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA
-- `TipoNotificacao`: OITIVA_PROXIMA (-> oitiva), REPASSE_RECEBIDO / REPASSE_ACEITO / REPASSE_RECUSADO (-> repasse),
-  CADASTRO_PENDENTE (-> usuario). Entre parênteses: tabela para onde aponta `referenciaId`
+- `TipoNotificacao`: OITIVA_PROXIMA / OITIVA_SEM_BAIXA / OITIVA_ATRIBUIDA (-> oitiva), REPASSE_RECEBIDO /
+  REPASSE_ACEITO / REPASSE_RECUSADO (-> repasse), CADASTRO_PENDENTE (-> usuario). Entre parênteses: tabela para onde aponta `referenciaId`
 
 ## Regras de negócio decididas
 
@@ -114,6 +114,7 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   service como `String`). Desativar só APROVADO; reativar só DESATIVADO. Redefinir senha (204) vale para qualquer status.
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
+  Cadastro em `POST /procedimento` (Delegado/Policial).
   Arquivar exige que não haja repasse PENDENTE nem oitiva AGENDADA (400 listando as datas: "conclua as já
   realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
   procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
@@ -139,8 +140,14 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   `@Size(min = 1)`, lista sem setter; usar sempre `adicionarParte()`/`removerParte()`. `dataHora` precisa ser
   atualizável (remarcação); `dataCadastro` e `cadastradoPor` são `updatable = false`.
 - **Notificação**: `referenciaId` só é preenchido depois de salvar o registro de origem (antes o id é nulo).
-  A tarefa agendada de OITIVA_PROXIMA checa `existsByTipoNotificacaoAndReferenciaId` antes de criar, para não
-  repetir. Só o próprio destinatário pode marcar a notificação como lida (consultas filtradas por
+  Avisos de oitiva (`service/hearing/OitivaNotificacaoService`), sempre para o responsável:
+  OITIVA_ATRIBUIDA na hora (agendar ou trocar o responsável, se quem fez não é o próprio responsável);
+  tarefa agendada (`@Scheduled`, cron em `NOTIFICACAO_CRON`, padrão `0 */10 * * * *`) cria OITIVA_PROXIMA para
+  AGENDADA nas próximas 24h e OITIVA_SEM_BAIXA para AGENDADA com data passada há mais de 2h; checa
+  `existsByTipoNotificacaoAndReferenciaId` antes de criar (um aviso de cada tipo por oitiva). Remarcar ou trocar
+  o responsável apaga PROXIMA/SEM_BAIXA da oitiva (a tarefa gera de novo); concluir/desmarcar marca os avisos da
+  oitiva como lidos. Novo valor em `TipoNotificacao` exige recriar o banco de desenvolvimento: o Hibernate cria
+  um CHECK com os valores do enum na coluna `tipo` e o `ddl-auto=update` não o atualiza (insert dá 500). Só o próprio destinatário pode marcar a notificação como lida (consultas filtradas por
   `UsuarioDestinatarioLogin`; de outra pessoa = 404). Rotas: `GET /notificacoes[?lida=]`,
   `GET /notificacoes/nao-lidas/contagem`, `PATCH /notificacoes/{id}/lida`, `PATCH /notificacoes/lidas`.
   Assunto resolvido baixa o aviso de todos: aprovar/rejeitar cadastro chama
@@ -172,7 +179,7 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 
 - Variáveis vêm do `.env` na raiz via `spring.config.import=optional:file:.env[.properties]` (`.env` no
   `.gitignore`; `.env.example` versionado). Inclui `DB_*`, `JWT_SECRET`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`,
-  `CORS_ORIGENS_PERMITIDAS`.
+  `CORS_ORIGENS_PERMITIDAS` e, opcional, `NOTIFICACAO_CRON` (ex.: `*/10 * * * * *` = a cada 10 s, para demonstração).
 - `config/DadosIniciais` (`CommandLineRunner`) cria as 4 roles e o Admin (APROVADO, senha BCrypt) se não existirem.
 - `ddl-auto=update` só acrescenta: nunca remove, renomeia nem muda tipo de coluna. Ao renomear campo/coluna ou
   mudar tipo, recriar o banco de desenvolvimento (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`).
@@ -181,8 +188,9 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
 contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → ✅ usuários (cadastro,
-aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → ✅ veículos →
-notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
+aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → ✅ oitivas → ✅ veículos →
+notificações (✅ rotas de listagem/lida; ✅ avisos e tarefa agendada de oitiva; avisos de repasse com o módulo de
+repasse) → exportação. Depois do back end: melhorias e inovações (ex.: etiqueta com QR code do lacre do veículo).
 CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
 
 Pendente na documentação (`docx` e DER/diagramas), a atualizar ao fechar o módulo de oitivas: permissões do
@@ -197,8 +205,6 @@ no diagrama de classes; arquivar bloqueado por oitiva AGENDADA; veículos: dupli
 - Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
 - Rastreabilidade completa do veículo: troca de procedimento vinculado com motivo e histórico próprio, e registro
   das edições de dados (placa, chassi, perícia...).
-- Notificação "oitiva sem baixa" (ex.: `OITIVA_SEM_BAIXA`) para o responsável quando uma oitiva AGENDADA passa
-  da data sem ser concluída ou desmarcada (tarefa agendada, junto da OITIVA_PROXIMA).
 - Auditoria técnica com Hibernate Envers (`@Audited` + tabelas `_aud`/`revinfo`, com listener gravando o login do
   token): versões de todas as alterações, complementando os históricos de negócio (que guardam o motivo).
 
