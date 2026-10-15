@@ -61,6 +61,11 @@ public class SecurityConfig {
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
                         .requestMatchers(HttpMethod.POST, "/procedimento").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
+                        .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
+                        .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Oitivas: Delegado, Policial e Estagiário
+                        .requestMatchers("/oitivas/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversorDePapeis())));
