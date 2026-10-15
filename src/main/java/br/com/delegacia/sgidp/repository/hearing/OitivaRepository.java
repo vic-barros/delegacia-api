@@ -43,6 +43,13 @@ public interface OitivaRepository extends JpaRepository<Oitiva, Long> {
     List<Oitiva> buscar(LocalDateTime inicio, LocalDateTime fim, Long responsavelId, String responsavelLogin,
                         StatusOitiva status, Long procedimentoId, LocalDateTime agora, StatusOitiva agendada);
 
+    // Tarefas de notificação: oitivas AGENDADAS num intervalo (próximas) ou antes de um momento (sem baixa).
+    @EntityGraph(attributePaths = {"responsavel", "procedimento"})
+    List<Oitiva> findByStatusOitivaAndDataHoraBetween(StatusOitiva status, LocalDateTime inicio, LocalDateTime fim);
+
+    @EntityGraph(attributePaths = {"responsavel", "procedimento"})
+    List<Oitiva> findByStatusOitivaAndDataHoraBefore(StatusOitiva status, LocalDateTime limite);
+
     // Para o arquivamento do procedimento: oitivas ainda AGENDADAS bloqueiam o arquivamento
     List<Oitiva> findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc(Long procedimentoId, StatusOitiva status);
 }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import br.com.delegacia.sgidp.model.notification.Notificacao;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +25,10 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> 
 
     // Avisos de um mesmo registro de origem (ex.: CADASTRO_PENDENTE do usuário X para todos os Admins)
     List<Notificacao> findByTipoNotificacaoAndReferenciaIdAndLidaFalse(TipoNotificacao tipo, Long referenciaId);
+
+    // Tarefa agendada: o aviso deste registro já foi criado? (evita repetir a cada execução)
+    boolean existsByTipoNotificacaoAndReferenciaId(TipoNotificacao tipo, Long referenciaId);
+
+    // Apaga os avisos de um registro (ex.: oitiva remarcada: o aviso antigo não vale mais)
+    void deleteByTipoNotificacaoInAndReferenciaId(Collection<TipoNotificacao> tipos, Long referenciaId);
 }
