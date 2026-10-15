@@ -14,7 +14,7 @@ public record OitivaAgendamentoRequestDto(
         @NotNull(message = "O procedimento deve ser informado")
         Long procedimentoId,
 
-        @NotNull(message = "O responsável deve ser infromado")
+        @NotNull(message = "O responsável deve ser informado")
         Long responsavelId,
 
         @NotNull(message = "A data e hora devem ser informadas")
