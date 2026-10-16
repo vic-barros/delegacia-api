@@ -159,6 +159,13 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   não reinicia por ano e pode ter lacunas. Não usar `@PrePersist` com o id (ainda é nulo nesse momento).
   Comentários em `schema.sql` usam `--` (`#` quebra a inicialização). Ao criar `data.sql` (seed de roles/admin),
   acrescentar `spring.jpa.defer-datasource-initialization=true`.
+- **Etiqueta do veículo**: `GET /veiculos/{id}/etiqueta` devolve PDF 100 x 50 mm (`inline`) gerado em
+  `service/vehicle/EtiquetaVeiculoService` com ZXing `core` (QR, correção de erro Q, desenhado em vetor) e Apache
+  PDFBox. QR = `ETIQUETA_URL_BASE` + `/veiculos/lacre/{lacre}` (tela do front, exige login; o QR não carrega dados).
+  Conteúdo: unidade (`ETIQUETA_UNIDADE`, opcional), lacre, tipo/marca/modelo, cor, placa (se houver),
+  procedimento, data de entrada (primeira linha do histórico) e data/hora da impressão; sem nomes de pessoas.
+  Qualquer logado pode gerar (regra de GET de `/veiculos/**`). Acentos no `.env` em `\uXXXX` (o arquivo é lido
+  como `.properties`).
 - **Situação do veículo**: começa em NA_DEPOL. Transições **não são bloqueadas** por decisão de projeto
   (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação).
   Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`; o cadastro também gera (anterior `null` → NA_DEPOL).
@@ -179,7 +186,8 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 
 - Variáveis vêm do `.env` na raiz via `spring.config.import=optional:file:.env[.properties]` (`.env` no
   `.gitignore`; `.env.example` versionado). Inclui `DB_*`, `JWT_SECRET`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`,
-  `CORS_ORIGENS_PERMITIDAS` e, opcional, `NOTIFICACAO_CRON` (ex.: `*/10 * * * * *` = a cada 10 s, para demonstração).
+  `CORS_ORIGENS_PERMITIDAS` e, opcionais, `NOTIFICACAO_CRON` (ex.: `*/10 * * * * *` = a cada 10 s, para
+  demonstração), `ETIQUETA_URL_BASE` e `ETIQUETA_UNIDADE`.
 - `config/DadosIniciais` (`CommandLineRunner`) cria as 4 roles e o Admin (APROVADO, senha BCrypt) se não existirem.
 - `ddl-auto=update` só acrescenta: nunca remove, renomeia nem muda tipo de coluna. Ao renomear campo/coluna ou
   mudar tipo, recriar o banco de desenvolvimento (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`).
@@ -190,7 +198,7 @@ Desenvolvimento em fatias verticais (módulo completo: repository → service �
 contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → ✅ usuários (cadastro,
 aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → ✅ oitivas → ✅ veículos →
 notificações (✅ rotas de listagem/lida; ✅ avisos e tarefa agendada de oitiva; avisos de repasse com o módulo de
-repasse) → exportação. Depois do back end: melhorias e inovações (ex.: etiqueta com QR code do lacre do veículo).
+repasse) → exportação. Depois do back end: melhorias e inovações (✅ etiqueta com QR code do lacre do veículo).
 CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em React, definir
 `CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
 
