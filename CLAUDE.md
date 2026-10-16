@@ -9,7 +9,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 ## Stack
 
 - Java 21, Spring Boot 4, Spring Data JPA, Spring Security (JWT, stateless), PostgreSQL, Lombok
-- Frontend separado em Angular (não está neste repositório)
+- Frontend separado em React (não está neste repositório; dev server Vite em `http://localhost:5173`)
 - Pacote base: `br.com.delegacia.sgidp`
 - Variáveis de ambiente do banco e `JWT_SECRET`: ver `.env.example`
 - Build/teste: `./mvnw test`
@@ -191,7 +191,8 @@ contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ 
 aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → ✅ oitivas → ✅ veículos →
 notificações (✅ rotas de listagem/lida; ✅ avisos e tarefa agendada de oitiva; avisos de repasse com o módulo de
 repasse) → exportação. Depois do back end: melhorias e inovações (ex.: etiqueta com QR code do lacre do veículo).
-CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
+CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em React, definir
+`CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
 
 Pendente na documentação (`docx` e DER/diagramas), a atualizar ao fechar o módulo de oitivas: permissões do
 Estagiário em oitivas (perfis, UCs e diagrama de casos de uso); regras de oitiva acima (conflito com confirmação,
