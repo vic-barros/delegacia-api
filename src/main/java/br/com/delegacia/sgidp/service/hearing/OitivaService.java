@@ -36,6 +36,8 @@ public class OitivaService {
     // Janela do aviso de conflito: outra oitiva do mesmo responsável até 59 min antes ou depois
     private static final long JANELA_CONFLITO_MINUTOS = 59;
 
+    private final OitivaNotificacaoService oitivaNotificacaoService;
+
     private static final DateTimeFormatter FORMATO_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
 
     private final OitivaRepository oitivaRepository;
@@ -58,12 +60,15 @@ public class OitivaService {
         oitiva.setProcedimento(procedimento);
         oitiva.setResponsavel(responsavel);
         oitiva.setDataHora(dados.dataHora());
-        oitiva.setCadastradoPor(buscarUsuarioLogado(loginLogado));
+        Usuario usuarioLogado = buscarUsuarioLogado(loginLogado);
+        oitiva.setCadastradoPor(usuarioLogado);
         // statusOitiva já começa AGENDADA na entidade
         for (OitivaParteRequestDto parte : dados.partes()) {
             oitiva.adicionarParte(new OitivaParte(parte.tipoParte(), parte.nomeParte().trim()));
         }
         oitivaRepository.save(oitiva);
+
+        oitivaNotificacaoService.avisarAtribuicao(oitiva, usuarioLogado);
 
         return OitivaResponseDto.de(oitiva);
     }
@@ -108,19 +113,26 @@ public class OitivaService {
     }
 
     // Editar responsável e partes (a lista enviada substitui a anterior)
+    // Editar responsável e partes (a lista enviada substitui a anterior)
     @Transactional
     public OitivaResponseDto editar(Long id, OitivaEdicaoRequestDto dados, String loginLogado) {
         Oitiva oitiva = buscarOitiva(id);
         exigirAgendada(oitiva);
 
         Usuario responsavel = buscarResponsavel(dados.responsavelId());
+        Usuario usuarioLogado = buscarUsuarioLogado(loginLogado);
         // Só verifica conflito se o responsável mudou (a data não muda aqui)
-        if (!responsavel.getId().equals(oitiva.getResponsavel().getId())) {
+        boolean trocouResponsavel = !responsavel.getId().equals(oitiva.getResponsavel().getId());
+        if (trocouResponsavel) {
             verificarConflito(responsavel, oitiva.getDataHora(), oitiva.getId(), dados.confirmarConflito());
         }
         oitiva.setResponsavel(responsavel);
 
-        // Remove as partes atuais (orphanRemoval apaga do banco) e adiciona as novas
+        if (trocouResponsavel) {
+            oitivaNotificacaoService.apagarAvisos(oitiva);
+            oitivaNotificacaoService.avisarAtribuicao(oitiva, usuarioLogado);
+        }
+
         for (OitivaParte parte : new ArrayList<>(oitiva.getPartes())) {
             oitiva.removerParte(parte);
         }
@@ -128,7 +140,7 @@ public class OitivaService {
             oitiva.adicionarParte(new OitivaParte(parte.tipoParte(), parte.nomeParte().trim()));
         }
 
-        oitiva.setAlteradoPor(buscarUsuarioLogado(loginLogado));
+        oitiva.setAlteradoPor(usuarioLogado);
         return OitivaResponseDto.de(oitiva);
     }
 
@@ -145,6 +157,8 @@ public class OitivaService {
 
         oitiva.setDataHora(dados.dataHora());
         oitiva.setAlteradoPor(buscarUsuarioLogado(loginLogado));
+        // Nova data: os avisos antigos não valem mais; a tarefa agendada gera de novo perto da nova data
+        oitivaNotificacaoService.apagarAvisos(oitiva);
         return OitivaResponseDto.de(oitiva);
     }
 
@@ -157,6 +171,7 @@ public class OitivaService {
         oitiva.setStatusOitiva(StatusOitiva.DESMARCADA);
         oitiva.setMotivoCancelamento(dados.motivo().trim());
         oitiva.setAlteradoPor(buscarUsuarioLogado(loginLogado));
+        oitivaNotificacaoService.resolverAvisos(oitiva);
         return OitivaResponseDto.de(oitiva);
     }
 
@@ -173,6 +188,7 @@ public class OitivaService {
         }
         oitiva.setStatusOitiva(StatusOitiva.CONCLUIDA);
         oitiva.setAlteradoPor(buscarUsuarioLogado(loginLogado));
+        oitivaNotificacaoService.resolverAvisos(oitiva);
         return OitivaResponseDto.de(oitiva);
     }
 

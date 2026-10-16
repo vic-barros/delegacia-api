@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -50,6 +51,18 @@ public class NotificacaoService {
     public ContagemNotificacoesResponseDto contarNaoLidas(String login) {
         return new ContagemNotificacoesResponseDto(
                 notificacaoRepository.countByUsuarioDestinatarioLoginAndLidaFalse(login));
+    }
+
+    // Tarefa agendada: evita criar o mesmo aviso de novo
+    @Transactional(readOnly = true)
+    public boolean existe(TipoNotificacao tipo, Long referenciaId) {
+        return notificacaoRepository.existsByTipoNotificacaoAndReferenciaId(tipo, referenciaId);
+    }
+
+    // Apaga os avisos de um registro que deixaram de valer (lidos ou não)
+    @Transactional
+    public void apagar(Collection<TipoNotificacao> tipos, Long referenciaId) {
+        notificacaoRepository.deleteByTipoNotificacaoInAndReferenciaId(tipos, referenciaId);
     }
 
     @Transactional
