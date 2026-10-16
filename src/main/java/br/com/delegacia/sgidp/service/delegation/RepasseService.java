@@ -1,6 +1,7 @@
 package br.com.delegacia.sgidp.service.delegation;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.delegacia.sgidp.dto.delegation.RepasseRequestDto;
 import br.com.delegacia.sgidp.dto.delegation.RepasseResponseDto;
@@ -15,7 +16,6 @@ import br.com.delegacia.sgidp.repository.delegation.RepasseRepository;
 import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
 import br.com.delegacia.sgidp.service.notification.NotificacaoService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
