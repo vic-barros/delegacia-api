@@ -2,10 +2,14 @@ package br.com.delegacia.sgidp.controller.vehicle;
 
 import br.com.delegacia.sgidp.dto.vehicle.*;
 import br.com.delegacia.sgidp.enums.vehicle.SituacaoVeiculo;
+import br.com.delegacia.sgidp.service.vehicle.EtiquetaVeiculoService;
 import br.com.delegacia.sgidp.service.vehicle.VeiculoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +24,8 @@ import java.util.List;
 public class VeiculoController {
 
     private final VeiculoService veiculoService;
+    private final EtiquetaVeiculoService etiquetaVeiculoService;
+
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -41,6 +47,14 @@ public class VeiculoController {
     @GetMapping("/{id}")
     public VeiculoResponseDto buscarPorId(@PathVariable Long id) {
         return veiculoService.buscarPorId(id);
+    }
+
+    // Etiqueta adesiva (PDF 100 x 50 mm). "inline": o navegador abre o PDF para imprimir, em vez de baixar
+    @GetMapping(value = "/{id}/etiqueta", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> etiqueta(@PathVariable Long id) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"etiqueta-veiculo-" + id + ".pdf\"")
+                .body(etiquetaVeiculoService.gerar(id));
     }
 
     @GetMapping("/{id}/historico")
