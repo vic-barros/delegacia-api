@@ -1,4 +1,5 @@
 package br.com.delegacia.sgidp.service.delegation;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,6 +9,7 @@ import br.com.delegacia.sgidp.dto.delegation.RepasseResponseDto;
 import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.notification.TipoNotificacao;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
+import br.com.delegacia.sgidp.enums.user.StatusUsuario;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.delegation.Repasse;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
@@ -21,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor 
 public class RepasseService {
+    // papéis que podem solicitar/receber repasses
+    private static final Set<String> PAPEIS_RESPONSAVEL = Set.of("ROLE_DELEGADO", "ROLE_POLICIAL", "ROLE_ESTAGIARIO");
     private final RepasseRepository repasseRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProcedimentoRepository procedimentoRepository;
@@ -49,6 +53,11 @@ public class RepasseService {
 
         if (destinatario.getId().equals(solicitante.getId())) {
             throw new RegraNegocioException("Não é possível repassar um procimento para si próprio.");
+        }
+
+        if (destinatario.getStatusUsuario() != StatusUsuario.APROVADO || !PAPEIS_RESPONSAVEL.contains(destinatario.getRole().getAcesso())) {
+            throw new RegraNegocioException(
+                    "O destinatário deve ser Delegado, Policial ou Estagiário com cadastro aprovado");
         }
 
         if (procedimento.getStatusProcedimento() == StatusProcedimento.ARQUIVADO) {
