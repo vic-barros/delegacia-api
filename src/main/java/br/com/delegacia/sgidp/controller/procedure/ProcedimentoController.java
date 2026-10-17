@@ -11,7 +11,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/procedimento")
+@RequestMapping("/procedimentos")
 @RequiredArgsConstructor
 public class ProcedimentoController {
     private final ProcedimentoService procedimentoService;
