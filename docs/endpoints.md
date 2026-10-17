@@ -864,7 +864,7 @@ POST
 
 ### Rota:
 
-`/procedimento`
+`/procedimentos`
 
 ### Descrição:
 

@@ -60,7 +60,7 @@ public class SecurityConfig {
                         // Gestão de usuários: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
-                        .requestMatchers(HttpMethod.POST, "/procedimento").hasAnyRole("DELEGADO", "POLICIAL")
+                        .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
                         // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
                         .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
                         .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
