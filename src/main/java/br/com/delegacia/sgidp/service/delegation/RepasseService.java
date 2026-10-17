@@ -10,6 +10,7 @@ import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.notification.TipoNotificacao;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
 import br.com.delegacia.sgidp.enums.user.StatusUsuario;
+import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.delegation.Repasse;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
@@ -38,12 +39,12 @@ public class RepasseService {
                 )); 
         
         Usuario destinatario = usuarioRepository.findById(dto.idDestinatario())
-                    .orElseThrow(() -> new RegraNegocioException(
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Destinatário não encontrado."
                 ));
         
         Procedimento procedimento = procedimentoRepository.findById(dto.idProcedimento())
-                    .orElseThrow(() -> new RegraNegocioException(
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
                                 "Procedimento não encontrado."
                     ));
         
@@ -52,7 +53,7 @@ public class RepasseService {
         }
 
         if (destinatario.getId().equals(solicitante.getId())) {
-            throw new RegraNegocioException("Não é possível repassar um procimento para si próprio.");
+            throw new RegraNegocioException("Não é possível repassar um procedimento para si próprio.");
         }
 
         if (destinatario.getStatusUsuario() != StatusUsuario.APROVADO || !PAPEIS_RESPONSAVEL.contains(destinatario.getRole().getAcesso())) {
@@ -78,7 +79,7 @@ public class RepasseService {
         notificacaoService.notificar(
         destinatario,
         TipoNotificacao.REPASSE_RECEBIDO,
-        "Você recebeu uma solicitação de repasse do procedimento " + procedimento.getNumeroProcedimento(),
+        "Você recebeu uma solicitação de repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " de " + solicitante.getNome(),
         repasse.getId()
         );
 
