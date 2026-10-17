@@ -9,7 +9,7 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 ## Stack
 
 - Java 21, Spring Boot 4, Spring Data JPA, Spring Security (JWT, stateless), PostgreSQL, Lombok
-- Frontend separado em Angular (não está neste repositório)
+- Frontend separado em React (não está neste repositório; dev server Vite em `http://localhost:5173`)
 - Pacote base: `br.com.delegacia.sgidp`
 - Variáveis de ambiente do banco e `JWT_SECRET`: ver `.env.example`
 - Build/teste: `./mvnw test`
@@ -43,7 +43,8 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - JWT enxuto (decisão para o hackathon): usar o suporte nativo do Spring Security (OAuth2 Resource Server,
   HS256 com `JWT_SECRET`), sem filtro JWT manual. Só `POST /auth/login` emitindo access token (claims: login e
   papel; validade ~8h). Sem refresh token, sem blacklist/logout no servidor (logout = front descarta o token).
-  Limitação aceita: usuário desativado mantém o token válido até expirar.
+  Limitação aceita (MVP): usuário desativado mantém o token válido até expirar (até 8h) e pode agir nesse
+  intervalo, inclusive reativar a si mesmo. Melhoria futura: conferir o status a cada requisição (ver "Melhorias futuras").
   Implementação: `SecurityConfig` (BCrypt, `SecurityFilterChain` stateless, `/auth/login` público, resto autenticado,
   `JwtEncoder`/`JwtDecoder` HS256 a partir de `JWT_SECRET` — mínimo 32 caracteres —, conversor que lê o claim `role`
   sem prefixo; CORS via `.cors(Customizer.withDefaults())` + bean `CorsConfigurationSource` com origens de
@@ -53,9 +54,13 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   APROVADO, senão `CredenciaisInvalidasException` (401, mensagem genérica) ou `CadastroNaoAprovadoException` (403).
   Rotas: `POST /auth/login`, `GET /auth/usuario-logado` (lê do token via `@AuthenticationPrincipal Jwt`).
   Evolução futura possível: `UserDetailsService` + `AuthenticationManager` trocando só o miolo do `AuthService`.
-- Pacotes: `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
-  `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, `security` (SecurityConfig,
-  TokenService, AuthService), `exception` (exceções de negócio + `GlobalExceptionHandler`), `config` (DadosIniciais).
+- Pacotes: camadas `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
+  `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, cada uma dividida em subpacotes
+  por domínio (nomes em inglês): `auth`, `user`, `role`, `procedure`, `custody`, `delegation` (repasse), `hearing`
+  (oitiva), `party`, `vehicle`, `examination` (perícia), `notification`. Ex.: `service/user/UsuarioService`,
+  `model/delegation/Repasse`. Fora das camadas: `security` (SecurityConfig, TokenService), `exception` (exceções
+  genéricas `RegraNegocioException` 400, `RecursoNaoEncontradoException` 404, `RecursoDuplicadoException` 409 +
+  `GlobalExceptionHandler`), `config` (DadosIniciais). `AuthService` fica em `service/auth`.
 - Injeção por construtor com `@RequiredArgsConstructor` (campos `final`); não usar `@Autowired`. `@Value` do Spring
   (`org.springframework.beans.factory.annotation.Value`, não o do Lombok) só para configuração.
 - Erros da API: lançar exceção de negócio e tratá-la no `GlobalExceptionHandler` (`@RestControllerAdvice`), que
@@ -70,12 +75,12 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 | Entidade | Pontos-chave |
 |---|---|
 | `Role` | `acesso` (UNIQUE, não é enum, padrão `ROLE_ADMIN`/`ROLE_DELEGADO`/`ROLE_POLICIAL`/`ROLE_ESTAGIARIO`), `descricao`. Implementa `GrantedAuthority` (`getAuthority()` devolve `acesso`) |
-| `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `statusUsuario: StatusUsuario` (coluna `status`), FK `role` (N:1). **Sem e-mail** |
+| `Usuario` | `nome`, `matricula` UK, `login` UK, `senhaHash`, `statusUsuario: StatusUsuario` (coluna `status`), FK `role` (N:1), `motivoRejeicao` (500, nullable; preenchido ao rejeitar). **Sem e-mail** |
 | `Procedimento` | `tipoProcedimento` (coluna `tipo`), `numeroProcedimento: Long` (coluna `numero`, bigint; só dígitos, formatação na UI), `anoProcedimento: Integer` (coluna `ano`), `crime`, `dataAbertura`/`dataRemessaFinal` (`LocalDate`), `protocoloRemessaFinal`, `statusProcedimento` (coluna `status`), FK `detentorAtual` (`detentor_atual_id`). **UNIQUE (tipo, numero, ano)**. Busca derivada: `findByTipoProcedimentoAndNumeroProcedimentoAndAnoProcedimento` |
 | `HistoricoStatusProcedimento` | `@Immutable`. `statusAnterior` (nullable: registro da criação), `statusNovo`, `motivo` (500), `dataTransicao`, FKs `procedimento`, `responsavel` |
 | `Repasse` | `statusRepasse` (coluna `status`, inicia PENDENTE), `justificativaRecusa` (500), `dataSolicitacao` (`@CreationTimestamp`), `dataResposta` (null até responder), FKs `procedimento`, `solicitante`, `destinatario`. CHECK `solicitante_id <> destinatario_id` via `@Table(check = @CheckConstraint)`. Métodos `aceitar()` / `recusar(justificativa)` preenchem status e `dataResposta` |
 | `HistoricoCustodia` | `dataInicio` (`@CreationTimestamp`), `dataFim` (null = custódia atual; única coluna atualizável), `origem: OrigemHistoricoCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (`@OneToOne` LAZY, nullable). Construtor `(procedimento, usuario, origem, repasseOrigem)`; `encerrar()` preenche `dataFim` (erro se já encerrada). **Não é `@Immutable`** |
-| `Oitiva` | `dataHora` (atualizável: remarcação), `statusOitiva` (coluna `status`, inicia AGENDADA), `motivoCancelamento`, `dataCadastro` (`@CreationTimestamp`), FKs `procedimento`, `responsavel`, `cadastradoPor` (`updatable = false`), `partes: List<OitivaParte>` (composição) |
+| `Oitiva` | `dataHora` (atualizável: remarcação), `statusOitiva` (coluna `status`, inicia AGENDADA), `motivoCancelamento`, `dataCadastro` (`@CreationTimestamp`), FKs `procedimento`, `responsavel`, `cadastradoPor` (`updatable = false`), `alteradoPor` (nullable: último que editou/remarcou/desmarcou/concluiu), `partes: List<OitivaParte>` (composição). `motivoCancelamento` com 500 |
 | `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`), FK `oitiva`. Construtor `(tipoParte, nomeParte)` + construtor vazio `protected` |
 | `Notificacao` | `tipoNotificacao` (coluna `tipo`), `mensagem`, `lida: Boolean` (inicia `false`), `dataCriacao` (`@CreationTimestamp`), `referenciaId` (Long, sem FK: id do registro de origem, tabela definida pelo tipo), FK `usuarioDestinatario`. Índice `(usuario_destinatario_id, lida)` |
 | `Veiculo` | `tipoVeiculo`, `lacre` (UK, `length = 15`, `updatable = false`, sem setter; `definirLacre()`), `marca`, `modelo`, `cor`, `placa`/`chassi`/`motor` (nullable), `caracteristicasVisuais`/`observacoes` (`TEXT`), `statusPericia: StatusPericia` (coluna `pericia`), `situacaoVeiculo` (coluna `situacao`, inicia `NA_DEPOL`), FK `procedimento`. **Sem `localizacaoPatio`** (a situação já indica onde o veículo está) |
@@ -92,29 +97,61 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 - `TipoParte`: INVESTIGADO, TESTEMUNHA, VITIMA
 - `SituacaoVeiculo`: NA_DEPOL, EM_PATIO, DEVOLVIDO, DESCARTADO
 - `StatusPericia`: SEM_PERICIA, PERICIA_EM_ANDAMENTO, PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA
-- `TipoNotificacao`: OITIVA_PROXIMA (-> oitiva), REPASSE_RECEBIDO / REPASSE_ACEITO / REPASSE_RECUSADO (-> repasse),
-  CADASTRO_PENDENTE (-> usuario). Entre parênteses: tabela para onde aponta `referenciaId`
+- `TipoNotificacao`: OITIVA_PROXIMA / OITIVA_SEM_BAIXA / OITIVA_ATRIBUIDA (-> oitiva), REPASSE_RECEBIDO /
+  REPASSE_ACEITO / REPASSE_RECUSADO (-> repasse), CADASTRO_PENDENTE (-> usuario). Entre parênteses: tabela para onde aponta `referenciaId`
 
 ## Regras de negócio decididas
 
 - **Login** apenas por `login` + senha (sem e-mail, simplificação para o hackathon). Usuário PENDENTE, REJEITADO
-  ou DESATIVADO não autentica.
+  ou DESATIVADO não autentica (403 com mensagem por status; o REJEITADO vê o motivo da rejeição).
+- **Cadastro/aprovação (UC02/UC03)**: cadastro público nasce PENDENTE (nunca como ROLE_ADMIN) e notifica os Admins
+  (CADASTRO_PENDENTE). Aprovar/rejeitar só a partir de PENDENTE; aprovar pode trocar o papel; rejeitar exige
+  motivo, que o usuário vê ao tentar logar (sem notificação: ele não acessa o sistema). Login e matrícula de um
+  rejeitado continuam reservados.
+- **Gestão (UC13/UC14)**: editar (nome, matrícula, papel; login não muda) só APROVADO ou DESATIVADO; na gestão o
+  papel ADMIN pode ser atribuído (promoção). O Admin não pode remover o próprio papel de Admin nem desativar a si
+  mesmo (evita lockout; login do Admin logado via `@AuthenticationPrincipal Jwt` → `jwt.getSubject()`, passado ao
+  service como `String`). Desativar só APROVADO; reativar só DESATIVADO. Redefinir senha (204) vale para qualquer status.
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
-  Arquivar exige que não haja repasse PENDENTE; procedimento arquivado não aceita repasse; reabertura volta
-  para EM_ANDAMENTO com motivo livre e registro em histórico.
+  Cadastro em `POST /procedimento` (Delegado/Policial).
+  Arquivar exige que não haja repasse PENDENTE nem oitiva AGENDADA (400 listando as datas: "conclua as já
+  realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
+  procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
+  registro em histórico.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
   `@Transactional`: `repasse.aceitar()`, `custodiaAtual.encerrar()`, novo `HistoricoCustodia(..., REPASSE, repasse)`
   e `procedimento.setDetentorAtual(destinatario)`.
-- **Oitiva**: conflito de horário é verificado por responsável; oitiva CONCLUIDA/DESMARCADA não é editável.
-  Desmarcar exige motivo (`motivoCancelamento`). Remarcar só altera `dataHora`. `dataCadastro` via
-  `@CreationTimestamp`; `cadastradoPor` vem do usuário autenticado (JWT), nunca do formulário.
+- **Oitiva**: Delegado, Policial e Estagiário agendam, editam, remarcam, desmarcam e concluem (o Estagiário conduz
+  oitivas sob supervisão e agenda para os policiais); Admin não acessa. Responsável: Delegado, Policial ou
+  Estagiário APROVADO. Procedimento ARQUIVADO não aceita oitiva (400 "Procedimento arquivado. É necessário
+  desarquivar para novas diligências."). Data/hora no passado é bloqueada no agendamento e na remarcação (`@Future`).
+  Conflito de horário por responsável (outra AGENDADA até 59 min antes/depois, ignorando a própria) **não bloqueia**:
+  409 `confirmarConflito` (agendar, remarcar, editar trocando o responsável). Oitiva CONCLUIDA/DESMARCADA não é
+  editável. Desmarcar exige motivo (`motivoCancelamento`). Remarcar só altera `dataHora`. Concluir é permitido a
+  qualquer momento; se for antes da data marcada (oitiva antecipada), `dataHora` vira o momento da conclusão.
+  "Atrasada" (AGENDADA com data passada, sem baixa) não é status salvo: é calculada na resposta (`atrasada`) e
+  filtrável (`?atrasadas=true`). `dataCadastro` via `@CreationTimestamp`; `cadastradoPor` e `alteradoPor` vêm do
+  usuário autenticado (JWT), nunca do formulário.
+  Rotas: `POST /oitivas`, `GET /oitivas[?dataInicio&dataFim&responsavelId&status&procedimentoId&minhas&atrasadas]`
+  (datas `yyyy-MM-dd`), `GET /oitivas/{id}`, `PUT /oitivas/{id}` (responsável + partes; a lista substitui a
+  anterior), `PATCH /oitivas/{id}/remarcar`, `PATCH /oitivas/{id}/desmarcar`, `PATCH /oitivas/{id}/concluir`.
   `Oitiva` é dona das partes (composição): `@OneToMany(mappedBy = "oitiva", cascade = ALL, orphanRemoval = true)`,
   `@Size(min = 1)`, lista sem setter; usar sempre `adicionarParte()`/`removerParte()`. `dataHora` precisa ser
   atualizável (remarcação); `dataCadastro` e `cadastradoPor` são `updatable = false`.
 - **Notificação**: `referenciaId` só é preenchido depois de salvar o registro de origem (antes o id é nulo).
-  A tarefa agendada de OITIVA_PROXIMA checa `existsByTipoNotificacaoAndReferenciaId` antes de criar, para não
-  repetir. Só o próprio destinatário pode marcar a notificação como lida.
+  Avisos de oitiva (`service/hearing/OitivaNotificacaoService`), sempre para o responsável:
+  OITIVA_ATRIBUIDA na hora (agendar ou trocar o responsável, se quem fez não é o próprio responsável);
+  tarefa agendada (`@Scheduled`, cron em `NOTIFICACAO_CRON`, padrão `0 */10 * * * *`) cria OITIVA_PROXIMA para
+  AGENDADA nas próximas 24h e OITIVA_SEM_BAIXA para AGENDADA com data passada há mais de 2h; checa
+  `existsByTipoNotificacaoAndReferenciaId` antes de criar (um aviso de cada tipo por oitiva). Remarcar ou trocar
+  o responsável apaga PROXIMA/SEM_BAIXA da oitiva (a tarefa gera de novo); concluir/desmarcar marca os avisos da
+  oitiva como lidos. Novo valor em `TipoNotificacao` exige recriar o banco de desenvolvimento: o Hibernate cria
+  um CHECK com os valores do enum na coluna `tipo` e o `ddl-auto=update` não o atualiza (insert dá 500). Só o próprio destinatário pode marcar a notificação como lida (consultas filtradas por
+  `UsuarioDestinatarioLogin`; de outra pessoa = 404). Rotas: `GET /notificacoes[?lida=]`,
+  `GET /notificacoes/nao-lidas/contagem`, `PATCH /notificacoes/{id}/lida`, `PATCH /notificacoes/lidas`.
+  Assunto resolvido baixa o aviso de todos: aprovar/rejeitar cadastro chama
+  `notificacaoService.marcarComoLidas(CADASTRO_PENDENTE, usuarioId)` na mesma transação.
 - **Lacre do veículo**: gerado no service, formato `LAC-AAAA-NNNNNN` (`String.format("LAC-%d-%06d", ano, n)`).
   O número vem da sequence `seq_lacre_veiculo`, criada em `src/main/resources/schema.sql` (o Hibernate não cria
   sequence que não é de id; exige `spring.sql.init.mode=always`). Leitura via SQL nativo justificado (RNF06):
@@ -122,18 +159,35 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   não reinicia por ano e pode ter lacunas. Não usar `@PrePersist` com o id (ainda é nulo nesse momento).
   Comentários em `schema.sql` usam `--` (`#` quebra a inicialização). Ao criar `data.sql` (seed de roles/admin),
   acrescentar `spring.jpa.defer-datasource-initialization=true`.
+- **Etiqueta do veículo**: `GET /veiculos/{id}/etiqueta` devolve PDF 100 x 50 mm (`inline`) gerado em
+  `service/vehicle/EtiquetaVeiculoService` com ZXing `core` (QR, correção de erro Q, desenhado em vetor) e Apache
+  PDFBox. QR = `ETIQUETA_URL_BASE` + `/veiculos/lacre/{lacre}` (tela do front, exige login; o QR não carrega dados).
+  Conteúdo: unidade (`ETIQUETA_UNIDADE`, opcional), lacre, tipo/marca/modelo, cor, placa (se houver),
+  procedimento, data de entrada (primeira linha do histórico) e data/hora da impressão; sem nomes de pessoas.
+  Qualquer logado pode gerar (regra de GET de `/veiculos/**`). Acentos no `.env` em `\uXXXX` (o arquivo é lido
+  como `.properties`).
 - **Situação do veículo**: começa em NA_DEPOL. Transições **não são bloqueadas** por decisão de projeto
-  (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação na UI).
-  Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`.
+  (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação).
+  Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`; o cadastro também gera (anterior `null` → NA_DEPOL).
   Nova situação igual à atual é rejeitada.
+- **Veículos (contrato)**: rotas `POST /veiculos`, `GET /veiculos[?lacre&placa&chassi&motor&situacao&procedimentoId]`,
+  `GET /veiculos/{id}`, `GET /veiculos/{id}/historico`, `PUT /veiculos/{id}`, `PATCH /veiculos/{id}/situacao`.
+  GET para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial. **Procedimento ARQUIVADO aceita
+  veículo** (diferente de oitiva: o arquivamento encerra as diligências, não a destinação do veículo).
+  Confirmações via flag no corpo + 409 (`ConfirmacaoNecessariaException`, nome da flag em `detalhes`):
+  `confirmarDuplicidade` (placa, chassi ou motor de veículo ativo NA_DEPOL/EM_PATIO; os três normalizados trim +
+  maiúsculas; na edição só o que mudou é verificado) e `confirmarReversao` (sair de DEVOLVIDO/DESCARTADO). O `PUT` edita só dados descritivos e perícia (RF26): não altera lacre, situação nem o
+  procedimento vinculado; essas edições não são rastreadas no MVP (ver "Melhorias futuras").
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
-  Estagiário só lê oitivas e veículos, participa de posse/repasse, não arquiva nem registra remessa.
+  Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos;
+  participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem registra remessa.
 
 ## Ambiente e dados iniciais
 
 - Variáveis vêm do `.env` na raiz via `spring.config.import=optional:file:.env[.properties]` (`.env` no
   `.gitignore`; `.env.example` versionado). Inclui `DB_*`, `JWT_SECRET`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`,
-  `CORS_ORIGENS_PERMITIDAS`.
+  `CORS_ORIGENS_PERMITIDAS` e, opcionais, `NOTIFICACAO_CRON` (ex.: `*/10 * * * * *` = a cada 10 s, para
+  demonstração), `ETIQUETA_URL_BASE` e `ETIQUETA_UNIDADE`.
 - `config/DadosIniciais` (`CommandLineRunner`) cria as 4 roles e o Admin (APROVADO, senha BCrypt) se não existirem.
 - `ddl-auto=update` só acrescenta: nunca remove, renomeia nem muda tipo de coluna. Ao renomear campo/coluna ou
   mudar tipo, recriar o banco de desenvolvimento (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`).
@@ -141,10 +195,27 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 ## Próximos passos
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
-contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → usuários (cadastro,
-aprovação, gestão) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → oitivas → veículos →
-notificações (criadas dentro dos módulos; rota de listagem/lida e tarefa agendada no fim) → exportação.
-CORS configurado para o Angular (`localhost:4200`); para outra origem, acrescentar em `CORS_ORIGENS_PERMITIDAS`.
+contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → ✅ usuários (cadastro,
+aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → ✅ oitivas → ✅ veículos →
+notificações (✅ rotas de listagem/lida; ✅ avisos e tarefa agendada de oitiva; avisos de repasse com o módulo de
+repasse) → exportação. Depois do back end: melhorias e inovações (✅ etiqueta com QR code do lacre do veículo).
+CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em React, definir
+`CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
+
+Pendente na documentação (`docx` e DER/diagramas), a atualizar ao fechar o módulo de oitivas: permissões do
+Estagiário em oitivas (perfis, UCs e diagrama de casos de uso); regras de oitiva acima (conflito com confirmação,
+procedimento arquivado, concluir antecipada, "atrasada"); `Oitiva.alteradoPor` e `motivoCancelamento` 500 no DER e
+no diagrama de classes; arquivar bloqueado por oitiva AGENDADA; veículos: duplicidade por motor e filtro `motor`.
+
+## Melhorias futuras (fora do MVP)
+
+- Revogação imediata de acesso: validar o status do usuário a cada requisição (ex.: no conversor JWT do
+  `SecurityConfig`, buscando o usuário e recusando se não estiver APROVADO) ou manter lista de tokens revogados.
+- Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
+- Rastreabilidade completa do veículo: troca de procedimento vinculado com motivo e histórico próprio, e registro
+  das edições de dados (placa, chassi, perícia...).
+- Auditoria técnica com Hibernate Envers (`@Audited` + tabelas `_aud`/`revinfo`, com listener gravando o login do
+  token): versões de todas as alterações, complementando os históricos de negócio (que guardam o motivo).
 
 ## Decisões em aberto
 
