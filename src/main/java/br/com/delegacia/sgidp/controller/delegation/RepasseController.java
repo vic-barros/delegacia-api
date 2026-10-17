@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController 
-@RequestMapping("/repasse")
+@RequestMapping("/repasses")
 @RequiredArgsConstructor 
 public class RepasseController {
     private final RepasseService repasseService;

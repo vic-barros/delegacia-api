@@ -62,7 +62,7 @@ public class SecurityConfig {
                         // gestão de procedimentos
                         .requestMatchers(HttpMethod.POST, "/procedimento").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
-                        .requestMatchers(HttpMethod.POST, "/repasse").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
                         .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
                         .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
