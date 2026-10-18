@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
                         .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Exportação de Procedimento: Só Delegado e Policial
+                        .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
@@ -110,6 +112,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(Arrays.stream(origensPermitidas.split(",")).map(String::trim).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setExposedHeaders(List.of("Content-Disposition")); // Deixa o front ler o nome do arquivo baixado (exportação); sem isso o navegador esconde o cabeçalho
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
