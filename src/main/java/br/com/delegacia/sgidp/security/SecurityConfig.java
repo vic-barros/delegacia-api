@@ -65,6 +65,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        // Exportação de veículos (relatório de carga): só Delegado/Policial. Antes da regra de GET
+                        // abaixo, porque o Spring usa a primeira regra que combina com a rota
+                        .requestMatchers(HttpMethod.GET, "/veiculos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
                         .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
                         .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
