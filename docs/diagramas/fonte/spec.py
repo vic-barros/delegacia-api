@@ -11,12 +11,12 @@ DER={
 'procedimento':('procedimento',[P('PK id: bigint'),N('tipo: varchar (enum TipoProcedimento)'),I('(BO, IP, TCO, APF, AIAI, AAFAI, ROP)'),N('numero: bigint'),N('ano: integer'),N('crime: varchar'),N('data_abertura: date'),N('data_remessa_final: date'),N('protocolo_remessa_final: varchar'),N('status: varchar'),I('(EM_ANDAMENTO, ARQUIVADO)'),F('FK detentor_atual_id: bigint'),I('UNIQUE (tipo, numero, ano)')],'lav'),
 'usuario':('usuario',[P('PK id: bigint'),N('nome: varchar'),N('matricula: varchar (UNIQUE)'),N('login: varchar (UNIQUE)'),N('senha_hash: varchar'),N('status: varchar'),I('(PENDENTE, APROVADO, REJEITADO, DESATIVADO)'),F('FK role_id: bigint')],'mint'),
 'role':('role',[P('PK id: bigint'),N('acesso: varchar (UNIQUE)'),I('ex.: ROLE_ADMIN, ROLE_DELEGADO,'),I('ROLE_POLICIAL, ROLE_ESTAGIARIO'),N('descricao: varchar')],'pink'),
-'oitiva':('oitiva',[P('PK id: bigint'),N('data_hora: timestamp'),N('status: varchar'),I('(AGENDADA, CONCLUIDA, DESMARCADA)'),N('motivo_cancelamento: varchar'),N('data_cadastro: timestamp'),F('FK procedimento_id: bigint'),F('FK responsavel_id: bigint'),F('FK cadastrado_por_id: bigint')],'mint'),
+'oitiva':('oitiva',[P('PK id: bigint'),N('data_hora: timestamp'),N('status: varchar'),I('(AGENDADA, CONCLUIDA, DESMARCADA)'),N('motivo_cancelamento: varchar(500)'),N('data_cadastro: timestamp'),F('FK procedimento_id: bigint'),F('FK responsavel_id: bigint'),F('FK cadastrado_por_id: bigint'),F('FK alterado_por_id: bigint (nullable)')],'mint'),
 'oitiva_parte':('oitiva_parte',[P('PK id: bigint'),N('tipo_parte: varchar'),I('(INVESTIGADO, TESTEMUNHA, VITIMA)'),N('nome_parte: varchar'),F('FK oitiva_id: bigint')],'mint'),
 'repasse':('repasse',[P('PK id: bigint'),N('status: varchar'),I('(PENDENTE, ACEITO, RECUSADO)'),N('justificativa_recusa: varchar'),N('data_solicitacao: timestamp'),N('data_resposta: timestamp'),F('FK procedimento_id: bigint'),F('FK solicitante_id: bigint'),F('FK destinatario_id: bigint'),I('CHECK (solicitante_id <> destinatario_id)')],'salmon'),
 'hc':('historico_custodia',[P('PK id: bigint'),N('data_inicio: timestamp'),N('data_fim: timestamp (null)'),N('origem: varchar (enum OrigemHistoricoCustodia)'),I('(CADASTRO_INICIAL, REPASSE)'),F('FK procedimento_id: bigint'),F('FK usuario_id: bigint'),F('FK repasse_origem_id: bigint (null)')],'salmon'),
 'hsp':('historico_status_procedimento',[P('PK id: bigint'),N('status_anterior: varchar'),N('status_novo: varchar'),N('motivo: varchar'),N('data_transicao: timestamp'),F('FK procedimento_id: bigint'),F('FK responsavel_id: bigint')],'lav'),
-'notif':('notificacao',[P('PK id: bigint'),N('tipo: varchar (enum TipoNotificacao)'),I('(OITIVA_PROXIMA, REPASSE_RECEBIDO,'),I(' REPASSE_ACEITO, REPASSE_RECUSADO,'),I(' CADASTRO_PENDENTE)'),N('mensagem: varchar'),N('lida: boolean'),N('data_criacao: timestamp'),N('referencia_id: bigint (null)'),I('sem FK: tabela definida pelo tipo'),F('FK usuario_destinatario_id: bigint'),I('INDEX (usuario_destinatario_id, lida)')],'beige'),
+'notif':('notificacao',[P('PK id: bigint'),N('tipo: varchar (enum TipoNotificacao)'),I('(OITIVA_PROXIMA, OITIVA_SEM_BAIXA,'),I(' OITIVA_ATRIBUIDA, REPASSE_RECEBIDO,'),I(' REPASSE_ACEITO, REPASSE_RECUSADO,'),I(' CADASTRO_PENDENTE)'),N('mensagem: varchar'),N('lida: boolean'),N('data_criacao: timestamp'),N('referencia_id: bigint (null)'),I('sem FK: tabela definida pelo tipo'),F('FK usuario_destinatario_id: bigint'),I('INDEX (usuario_destinatario_id, lida)')],'beige'),
 'veiculo':('veiculo',[P('PK id: bigint'),N('tipo_veiculo: varchar'),N('lacre: varchar (UNIQUE)'),I('gerado: LAC-AAAA-NNNNNN'),I('(sequence seq_lacre_veiculo)'),N('marca: varchar'),N('modelo: varchar'),N('cor: varchar'),N('placa: varchar (null)'),N('chassi: varchar (null)'),N('motor: varchar (null)'),N('caracteristicas_visuais: text'),N('pericia: varchar (enum StatusPericia)'),N('situacao: varchar (enum SituacaoVeiculo)'),I("DEFAULT 'NA_DEPOL'"),N('observacoes: text'),F('FK procedimento_id: bigint')],'green'),
 'hsv':('historico_situacao_veiculo',[P('PK id: bigint'),N('situacao_anterior: varchar'),N('situacao_nova: varchar'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: varchar'),N('data_transicao: timestamp'),F('FK veiculo_id: bigint'),F('FK responsavel_id: bigint')],'cyan'),
 }
@@ -29,7 +29,7 @@ CLS={
 'repasse':('Repasse',[N('id: Long'),N('statusRepasse: StatusRepasse'),I('(PENDENTE, ACEITO, RECUSADO)'),N('justificativaRecusa: String'),N('dataSolicitacao: LocalDateTime'),N('dataResposta: LocalDateTime'),I('aceitar() / recusar(justificativa)')],'salmon'),
 'hc':('HistoricoCustodia',[N('id: Long'),N('dataInicio: LocalDateTime'),N('dataFim: LocalDateTime'),N('origem: OrigemHistoricoCustodia'),I('(CADASTRO_INICIAL, REPASSE)'),I('encerrar()')],'salmon'),
 'hsp':('HistoricoStatusProcedimento',[N('id: Long'),N('statusAnterior: StatusProcedimento'),N('statusNovo: StatusProcedimento'),N('motivo: String'),N('dataTransicao: LocalDateTime'),I('@Immutable')],'lav'),
-'notif':('Notificacao',[N('id: Long'),N('tipoNotificacao: TipoNotificacao'),I('(OITIVA_PROXIMA, REPASSE_RECEBIDO,'),I(' REPASSE_ACEITO, REPASSE_RECUSADO,'),I(' CADASTRO_PENDENTE)'),N('mensagem: String'),N('lida: Boolean'),N('dataCriacao: LocalDateTime'),N('referenciaId: Long')],'beige'),
+'notif':('Notificacao',[N('id: Long'),N('tipoNotificacao: TipoNotificacao'),I('(OITIVA_PROXIMA, OITIVA_SEM_BAIXA,'),I(' OITIVA_ATRIBUIDA, REPASSE_RECEBIDO,'),I(' REPASSE_ACEITO, REPASSE_RECUSADO,'),I(' CADASTRO_PENDENTE)'),N('mensagem: String'),N('lida: Boolean'),N('dataCriacao: LocalDateTime'),N('referenciaId: Long')],'beige'),
 'veiculo':('Veiculo',[N('id: Long'),N('tipoVeiculo: String'),N('lacre: String'),I('definirLacre(lacre)'),N('marca: String'),N('modelo: String'),N('cor: String'),N('placa: String'),N('chassi: String'),N('motor: String'),N('caracteristicasVisuais: String'),N('statusPericia: StatusPericia'),I('(SEM_PERICIA, PERICIA_EM_ANDAMENTO,'),I(' PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA)'),N('situacaoVeiculo: SituacaoVeiculo'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('observacoes: String')],'green'),
 'hsv':('HistoricoSituacaoVeiculo',[N('id: Long'),N('situacaoAnterior: SituacaoVeiculo'),N('situacaoNova: SituacaoVeiculo'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: String'),N('dataTransicao: LocalDateTime'),I('@Immutable')],'cyan'),
 }
@@ -55,6 +55,7 @@ def edges(one,many,L):
      chan('notif',.5,'usuario',1370,0,many,one,L['usuarioDestinatario']),
      chan('oitiva',.5,'usuario',980,0,many,one,L['responsavel']),
      chan('oitiva',.85,'usuario',1010,1,many,one,L['cadastradoPor']),
+     chan('oitiva',0,'usuario',1140,9,many,one,L['alteradoPor'],via=('l',XS[0]-24,44)),
      chan('hsp',.5,'usuario',1300,1,many,one,L['responsavel']),
      chan('repasse',.5,'usuario',1040,2,many,one,L['solicitante']),
      chan('repasse',.85,'usuario',1070,3,many,one,L['destinatario']),
@@ -68,8 +69,8 @@ def edges(one,many,L):
     ]
 LD={k:k for k in []}
 LD=dict(detentor='detentor_atual_id',role='role_id',oitiva='oitiva_id',veiculo='veiculo_id',repasseOrigem='repasse_origem_id',usuarioDestinatario='usuario_destinatario_id',
- responsavel='responsavel_id',cadastradoPor='cadastrado_por_id',solicitante='solicitante_id',destinatario='destinatario_id',usuario='usuario_id',procedimento='procedimento_id')
+ responsavel='responsavel_id',cadastradoPor='cadastrado_por_id',alteradoPor='alterado_por_id',solicitante='solicitante_id',destinatario='destinatario_id',usuario='usuario_id',procedimento='procedimento_id')
 LC=dict(detentor='detentorAtual',role='role',oitiva='oitiva',veiculo='veiculo',repasseOrigem='repasseOrigem',usuarioDestinatario='usuarioDestinatario',
- responsavel='responsavel',cadastradoPor='cadastradoPor',solicitante='solicitante',destinatario='destinatario',usuario='usuario',procedimento='procedimento')
+ responsavel='responsavel',cadastradoPor='cadastradoPor',alteradoPor='alteradoPor',solicitante='solicitante',destinatario='destinatario',usuario='usuario',procedimento='procedimento')
 build('DER',DER,layout(DER),edges('1','N',LD),'der')
 build('Classes',CLS,layout(CLS),edges('1','0..*',LC),'classes')

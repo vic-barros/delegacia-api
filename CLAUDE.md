@@ -5,10 +5,14 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 
 - Documentação completa (visão, RFs, RNFs, casos de uso, diagramas): `docs/Sistema_Delegacia_v2_Documentacao_SGI-DP.docx`
 - DER e diagrama de classes: `docs/diagramas/` (PDF e PNG)
+- Contrato das rotas para o front (JSON de entrada/saída e erros): `docs/endpoints.md`
 
 ## Stack
 
 - Java 21, Spring Boot 4, Spring Data JPA, Spring Security (JWT, stateless), PostgreSQL, Lombok
+- Arquivos: Apache PDFBox + ZXing `core` (etiqueta com QR), Apache POI `poi-ooxml` (XLSX) e OpenPDF 3 (PDF com
+  tabela; pacote `org.openpdf`, não o antigo `com.lowagie`) nas exportações
+- Fuso: `TimeZone.setDefault(America/Sao_Paulo)` no início do `main()` (antes disso o `@CreationTimestamp` saía em UTC)
 - Frontend separado em React (não está neste repositório; dev server Vite em `http://localhost:5173`)
 - Pacote base: `br.com.delegacia.sgidp`
 - Variáveis de ambiente do banco e `JWT_SECRET`: ver `.env.example`
@@ -57,7 +61,8 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
 - Pacotes: camadas `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
   `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, cada uma dividida em subpacotes
   por domínio (nomes em inglês): `auth`, `user`, `role`, `procedure`, `custody`, `delegation` (repasse), `hearing`
-  (oitiva), `party`, `vehicle`, `examination` (perícia), `notification`. Ex.: `service/user/UsuarioService`,
+  (oitiva), `party`, `vehicle`, `examination` (perícia), `notification`, `export` (peças comuns das exportações:
+  `enums/export/FormatoExportacao`, `dto/export/ArquivoExportadoResponseDto`). Ex.: `service/user/UsuarioService`,
   `model/delegation/Repasse`. Fora das camadas: `security` (SecurityConfig, TokenService), `exception` (exceções
   genéricas `RegraNegocioException` 400, `RecursoNaoEncontradoException` 404, `RecursoDuplicadoException` 409 +
   `GlobalExceptionHandler`), `config` (DadosIniciais). `AuthService` fica em `service/auth`.
@@ -67,6 +72,9 @@ Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDB
   devolve `ErroResponseDto(status, mensagem, detalhes, dataHora)` (fica no pacote `exception`, junto do handler). Validação de DTO (`@Valid`) vira 400 com a lista de
   campos em `detalhes`.
 - Textos de UI/mensagens e documentação em português.
+- Rotas no plural (`/procedimentos`, `/repasses`, `/oitivas`, `/veiculos`, `/usuarios`, `/notificacoes`).
+- Regras do `SecurityConfig`: o Spring usa a **primeira** que combina com a rota, então a específica vem antes da
+  geral (ex.: `GET /veiculos/exportar` antes de `GET /veiculos/**`). Rota literal (`/exportar`) convive com `/{id}`.
 
 ## Modelo de domínio
 
@@ -114,7 +122,7 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   service como `String`). Desativar só APROVADO; reativar só DESATIVADO. Redefinir senha (204) vale para qualquer status.
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
-  Cadastro em `POST /procedimento` (Delegado/Policial).
+  Cadastro em `POST /procedimentos` (Delegado/Policial).
   Arquivar exige que não haja repasse PENDENTE nem oitiva AGENDADA (400 listando as datas: "conclua as já
   realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
   procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
@@ -122,6 +130,11 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
   `@Transactional`: `repasse.aceitar()`, `custodiaAtual.encerrar()`, novo `HistoricoCustodia(..., REPASSE, repasse)`
   e `procedimento.setDetentorAtual(destinatario)`.
+  Solicitação pronta (UC08): `POST /repasses` `{idDestinatario, idProcedimento}` (Delegado/Policial/Estagiário),
+  só o detentor atual solicita; destinatário Delegado/Policial/Estagiário APROVADO e diferente do solicitante;
+  procedimento ARQUIVADO ou com repasse PENDENTE recusa (400); ids inexistentes 404. Notifica o destinatário
+  (REPASSE_RECEBIDO, "procedimento IP 123/2026 de Fulano"). `saveAndFlush` para a `dataSolicitacao` vir preenchida.
+  Pendentes (colega): aceitar/recusar (UC09) com REPASSE_ACEITO/RECUSADO e listagem.
 - **Oitiva**: Delegado, Policial e Estagiário agendam, editam, remarcam, desmarcam e concluem (o Estagiário conduz
   oitivas sob supervisão e agenda para os policiais); Admin não acessa. Responsável: Delegado, Policial ou
   Estagiário APROVADO. Procedimento ARQUIVADO não aceita oitiva (400 "Procedimento arquivado. É necessário
@@ -178,9 +191,26 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   `confirmarDuplicidade` (placa, chassi ou motor de veículo ativo NA_DEPOL/EM_PATIO; os três normalizados trim +
   maiúsculas; na edição só o que mudou é verificado) e `confirmarReversao` (sair de DEVOLVIDO/DESCARTADO). O `PUT` edita só dados descritivos e perícia (RF26): não altera lacre, situação nem o
   procedimento vinculado; essas edições não são rastreadas no MVP (ver "Melhorias futuras").
+- **Exportação (RF20/UC16)**: `GET /procedimentos/exportar` (filtros `dataInicio`/`dataFim` da abertura, `tipo`,
+  `status`) e `GET /veiculos/exportar` (`situacao` repetível, `statusPericia`, `procedimentoId`, `dataInicio`/`dataFim`
+  da entrada = primeira linha do histórico), ambas com `formato=XLSX|PDF` obrigatório e só Delegado/Policial.
+  Resposta `attachment` com nome `procedimentos-|veiculos-|carga-veiculos-AAAAMMDD-HHMM.ext`; o CORS expõe
+  `Content-Disposition` para o front ler o nome. Lista vazia = 404 com mensagem (UC16, nunca arquivo vazio); período
+  invertido 400; parâmetro obrigatório ausente vira `ErroResponseDto` 400. Estrutura: service de regras
+  (`Exportacao*Service`) + um gerador por formato (`*XlsxService`, `*PdfService`, PDF em A4 paisagem com cabeçalho
+  repetido por página). Planilha com datas/números como valor (não texto), filtro e cabeçalho fixo.
+  **Relatório de carga**: filtro exatamente NA_DEPOL + EM_PATIO (comparado como `EnumSet`, em qualquer ordem);
+  totais por situação, ordem por situação (ordem do enum, feita em Java: no banco o enum é texto) e lacre; PDF com
+  coluna "Conferido" em branco e linha de assinatura para a conferência física. Data de entrada de todos os veículos
+  numa consulta só (`HistoricoSituacaoVeiculoRepository.buscarDatasEntrada`, projeção por interface); fim do período
+  = meia-noite do dia seguinte com `<` (a data tem hora).
+- **Importação de acervo (RF21, fase posterior)**: sem rota própria; alternativa simples já testada = chamar
+  `POST /procedimentos` por linha (Postman Collection Runner com CSV ou script Python que lê CSV/XLSX e grava o log
+  por linha). Quem importa vira o detentor; procedimentos já arquivados exigem arquivar depois.
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
-  Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos;
-  participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem registra remessa.
+  Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos
+  (lista, ficha e etiqueta); participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem
+  registra remessa e não exporta.
 
 ## Ambiente e dados iniciais
 
@@ -195,17 +225,18 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 ## Próximos passos
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
-contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Ordem: ✅ login → ✅ usuários (cadastro,
-aprovação, gestão, senha) → procedimentos (custódia inicial, histórico, arquivar/reabrir) → repasse → ✅ oitivas → ✅ veículos →
-notificações (✅ rotas de listagem/lida; ✅ avisos e tarefa agendada de oitiva; avisos de repasse com o módulo de
-repasse) → exportação. Depois do back end: melhorias e inovações (✅ etiqueta com QR code do lacre do veículo).
+contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Situação: ✅ login → ✅ usuários (cadastro,
+aprovação, gestão, senha) → procedimentos (✅ cadastro com custódia inicial e histórico de status; listagem,
+detalhe, arquivar/reabrir e remessa com o colega) → repasse (✅ solicitação; aceitar/recusar com o colega) →
+✅ oitivas → ✅ veículos → notificações (✅ rotas; ✅ avisos de oitiva; ✅ REPASSE_RECEBIDO; aceito/recusado com o
+repasse) → ✅ exportação (procedimentos e veículos/carga). Inovações: ✅ etiqueta com QR code; ✅ relatório de carga.
 CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em React, definir
 `CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
 
-Pendente na documentação (`docx` e DER/diagramas), a atualizar ao fechar o módulo de oitivas: permissões do
-Estagiário em oitivas (perfis, UCs e diagrama de casos de uso); regras de oitiva acima (conflito com confirmação,
-procedimento arquivado, concluir antecipada, "atrasada"); `Oitiva.alteradoPor` e `motivoCancelamento` 500 no DER e
-no diagrama de classes; arquivar bloqueado por oitiva AGENDADA; veículos: duplicidade por motor e filtro `motor`.
+Em paralelo ao colega: documentação (docx, DER/diagramas, coleção Postman), OpenAPI/Swagger (gera o contrato das
+rotas automaticamente; hoje `docs/endpoints.md` é mantido à mão e ainda não cobre repasse, etiqueta e exportações),
+dados de demonstração, Docker (PR `chore/docker`, RNF11) e testes automatizados (hoje só `contextLoads`).
+Depois do repasse completo: rota de painel com contadores (oitivas do dia/atrasadas, repasses pendentes, carga).
 
 ## Melhorias futuras (fora do MVP)
 
@@ -224,7 +255,7 @@ no diagrama de classes; arquivar bloqueado por oitiva AGENDADA; veículos: dupli
 ## Diagramas
 
 Gerados por código em `docs/diagramas/fonte/` (Python gera HTML/SVG; Playwright/Chromium renderiza PNG e PDF).
-Para alterar uma tabela/classe, editar `spec.py` (DER e classes) ou `uc.py` (casos de uso) e rodar, dentro
-dessa pasta: `python3 spec.py && python3 uc.py && node render.js` (com `playwright` disponível no `NODE_PATH`).
+Para alterar uma tabela/classe, editar `spec.py` (DER e classes), `uc.py` (casos de uso) ou `arq.py` (arquitetura) e rodar,
+dentro dessa pasta: `python3 spec.py && python3 uc.py && python3 arq.py && node render.js` (com `playwright` disponível no `NODE_PATH`).
 Os arquivos gerados (`*.html`, `*.json`, `*.png`, `*.pdf`) saem na própria pasta; copiar os finais para
 `docs/diagramas/`.
