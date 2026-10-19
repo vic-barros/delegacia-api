@@ -1,9 +1,12 @@
-# SGI-DP — Sistema de Gestão Interna da Delegacia de Polícia (v2)
+# SISGEP — Sistema Interno de Gestão Policial (v2)
 
 API REST em Spring Boot para controle de oitivas, custódia de procedimentos policiais e veículos apreendidos.
 Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDBC) com arquitetura em camadas.
+Nome anterior: SGI-DP. O pacote Java (`br.com.delegacia.sgidp`), a classe `SgiDpApplication` e o `artifactId` mantêm
+o nome antigo de propósito: renomear mexe em todos os arquivos e conflita com as branches abertas (fazer, se for o
+caso, depois da apresentação, com tudo mergeado, num PR único via refactor da IDE). Logo: `docs/img/logo-sisgep.jpg`.
 
-- Documentação completa (visão, RFs, RNFs, casos de uso, diagramas): `docs/Sistema_Delegacia_v2_Documentacao_SGI-DP.docx`
+- Documentação completa (visão, RFs, RNFs, casos de uso, diagramas): `docs/SISGEP_Documentacao.docx`
 - DER e diagrama de classes: `docs/diagramas/` (PDF e PNG)
 - Contrato das rotas para o front (JSON de entrada/saída e erros): `docs/endpoints.md`
 
@@ -207,6 +210,17 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 - **Importação de acervo (RF21, fase posterior)**: sem rota própria; alternativa simples já testada = chamar
   `POST /procedimentos` por linha (Postman Collection Runner com CSV ou script Python que lê CSV/XLSX e grava o log
   por linha). Quem importa vira o detentor; procedimentos já arquivados exigem arquivar depois.
+- **Ofícios expedidos (documentado no docx: RF30-RF35, UC24-UC29; código a implementar)**: substitui o livro
+  cartorário de ofícios; só expedidos. Campos: número/ano gerados pelo sistema (reinicia a cada ano, UNIQUE (numero,
+  ano)), data de expedição (não futura; define o ano), órgão destinatário, assunto, procedimento vinculado (opcional,
+  FK) e referência externa (opcional, texto: processo judicial etc.), status EXPEDIDO/CANCELADO, cadastradoPor,
+  alteradoPor, canceladoPor. Numeração: tabela `numeracao_oficio` (ano, ultimo_numero) com a linha do ano travada
+  (`@Lock(PESSIMISTIC_WRITE)`) ao gerar o próximo número. Cancelar exige motivo; número nunca é reaproveitado e o
+  cancelado continua na consulta e no livro (como a linha riscada). Corrigir só destinatário/assunto/procedimento/
+  referência e só EXPEDIDO; número e data imutáveis. Procedimento ARQUIVADO aceita ofício. Delegado, Policial e
+  Estagiário em tudo (Admin não acessa); numeração inicial do ano (continuidade com o livro de papel) só Delegado e
+  só sem ofício do ano no sistema. Rotas propostas: `POST/GET /oficios`, `GET/PUT /oficios/{id}`,
+  `PATCH /oficios/{id}/cancelar`, `GET /oficios/exportar` (livro em PDF/XLSX). Pacote `letter`.
 - **Perfis**: Admin (usuários/cadastros); Delegado e Policial (mesmas permissões, herdam de "Servidor");
   Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos
   (lista, ficha e etiqueta); participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem
@@ -245,6 +259,14 @@ Depois do repasse completo: rota de painel com contadores (oitivas do dia/atrasa
 - Padronizar as respostas 401/403 do Spring Security no formato `ErroResponseDto`.
 - Rastreabilidade completa do veículo: troca de procedimento vinculado com motivo e histórico próprio, e registro
   das edições de dados (placa, chassi, perícia...).
+- Gestão patrimonial da delegacia: bens com número de tombamento, categoria, setor/localização, servidor
+  responsável, movimentações com histórico e baixa (armamento merece análise própria: cautela).
+- Anexo do PDF do ofício ao registro.
+- Assistente virtual com IA (colega, em desenvolvimento): chave da API só no back end (`.env`); consultar a API com o
+  token do usuário para respeitar as permissões; na demo só dados fictícios; em produção anonimização ou modelo local
+  (LGPD, sigilo da investigação).
+- Módulo de vínculos (colega, em desenvolvimento): grafo ligando pessoas, procedimentos, veículos e oitivas,
+  reaproveitando as entidades existentes.
 - Auditoria técnica com Hibernate Envers (`@Audited` + tabelas `_aud`/`revinfo`, com listener gravando o login do
   token): versões de todas as alterações, complementando os históricos de negócio (que guardam o motivo).
 
@@ -255,7 +277,7 @@ Depois do repasse completo: rota de painel com contadores (oitivas do dia/atrasa
 ## Diagramas
 
 Gerados por código em `docs/diagramas/fonte/` (Python gera HTML/SVG; Playwright/Chromium renderiza PNG e PDF).
-Para alterar uma tabela/classe, editar `spec.py` (DER e classes), `uc.py` (casos de uso) ou `arq.py` (arquitetura) e rodar,
+Para alterar uma tabela/classe, editar `spec.py` (DER e classes), `uc.py` (casos de uso, inclusive ofícios) ou `arq.py` (arquitetura) e rodar,
 dentro dessa pasta: `python3 spec.py && python3 uc.py && python3 arq.py && node render.js` (com `playwright` disponível no `NODE_PATH`).
 Os arquivos gerados (`*.html`, `*.json`, `*.png`, `*.pdf`) saem na própria pasta; copiar os finais para
 `docs/diagramas/`.

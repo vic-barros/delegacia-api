@@ -19,6 +19,8 @@ DER={
 'notif':('notificacao',[P('PK id: bigint'),N('tipo: varchar (enum TipoNotificacao)'),I('(OITIVA_PROXIMA, OITIVA_SEM_BAIXA,'),I(' OITIVA_ATRIBUIDA, REPASSE_RECEBIDO,'),I(' REPASSE_ACEITO, REPASSE_RECUSADO,'),I(' CADASTRO_PENDENTE)'),N('mensagem: varchar'),N('lida: boolean'),N('data_criacao: timestamp'),N('referencia_id: bigint (null)'),I('sem FK: tabela definida pelo tipo'),F('FK usuario_destinatario_id: bigint'),I('INDEX (usuario_destinatario_id, lida)')],'beige'),
 'veiculo':('veiculo',[P('PK id: bigint'),N('tipo_veiculo: varchar'),N('lacre: varchar (UNIQUE)'),I('gerado: LAC-AAAA-NNNNNN'),I('(sequence seq_lacre_veiculo)'),N('marca: varchar'),N('modelo: varchar'),N('cor: varchar'),N('placa: varchar (null)'),N('chassi: varchar (null)'),N('motor: varchar (null)'),N('caracteristicas_visuais: text'),N('pericia: varchar (enum StatusPericia)'),N('situacao: varchar (enum SituacaoVeiculo)'),I("DEFAULT 'NA_DEPOL'"),N('observacoes: text'),F('FK procedimento_id: bigint')],'green'),
 'hsv':('historico_situacao_veiculo',[P('PK id: bigint'),N('situacao_anterior: varchar'),N('situacao_nova: varchar'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: varchar'),N('data_transicao: timestamp'),F('FK veiculo_id: bigint'),F('FK responsavel_id: bigint')],'cyan'),
+'oficio':('oficio',[P('PK id: bigint'),N('numero: integer'),N('ano: integer'),I('numero reinicia a cada ano'),N('data_expedicao: date'),N('orgao_destinatario: varchar'),N('assunto: varchar(500)'),N('referencia: varchar (null)'),N('status: varchar'),I('(EXPEDIDO, CANCELADO)'),N('motivo_cancelamento: varchar(500) (null)'),N('data_cadastro: timestamp'),N('data_cancelamento: timestamp (null)'),F('FK procedimento_id: bigint (null)'),F('FK cadastrado_por_id: bigint'),F('FK alterado_por_id: bigint (null)'),F('FK cancelado_por_id: bigint (null)'),I('UNIQUE (numero, ano)')],'cyan'),
+'numof':('numeracao_oficio',[P('PK ano: integer'),N('ultimo_numero: integer'),I('linha do ano travada ao gerar'),I('o proximo numero (FOR UPDATE)')],'beige'),
 }
 CLS={
 'procedimento':('Procedimento',[N('id: Long'),N('tipoProcedimento: TipoProcedimento'),I('(BO, IP, TCO, APF, AIAI, AAFAI, ROP)'),N('numeroProcedimento: Long'),N('anoProcedimento: Integer'),N('crime: String'),N('dataAbertura: LocalDate'),N('dataRemessaFinal: LocalDate'),N('protocoloRemessaFinal: String'),N('statusProcedimento: StatusProcedimento'),I('(EM_ANDAMENTO, ARQUIVADO)')],'lav'),
@@ -32,13 +34,16 @@ CLS={
 'notif':('Notificacao',[N('id: Long'),N('tipoNotificacao: TipoNotificacao'),I('(OITIVA_PROXIMA, OITIVA_SEM_BAIXA,'),I(' OITIVA_ATRIBUIDA, REPASSE_RECEBIDO,'),I(' REPASSE_ACEITO, REPASSE_RECUSADO,'),I(' CADASTRO_PENDENTE)'),N('mensagem: String'),N('lida: Boolean'),N('dataCriacao: LocalDateTime'),N('referenciaId: Long')],'beige'),
 'veiculo':('Veiculo',[N('id: Long'),N('tipoVeiculo: String'),N('lacre: String'),I('definirLacre(lacre)'),N('marca: String'),N('modelo: String'),N('cor: String'),N('placa: String'),N('chassi: String'),N('motor: String'),N('caracteristicasVisuais: String'),N('statusPericia: StatusPericia'),I('(SEM_PERICIA, PERICIA_EM_ANDAMENTO,'),I(' PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA)'),N('situacaoVeiculo: SituacaoVeiculo'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('observacoes: String')],'green'),
 'hsv':('HistoricoSituacaoVeiculo',[N('id: Long'),N('situacaoAnterior: SituacaoVeiculo'),N('situacaoNova: SituacaoVeiculo'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: String'),N('dataTransicao: LocalDateTime'),I('@Immutable')],'cyan'),
+'oficio':('Oficio',[N('id: Long'),N('numero: Integer'),N('ano: Integer'),N('dataExpedicao: LocalDate'),N('orgaoDestinatario: String'),N('assunto: String'),N('referencia: String'),N('statusOficio: StatusOficio'),I('(EXPEDIDO, CANCELADO)'),N('motivoCancelamento: String'),N('dataCadastro: LocalDateTime'),N('dataCancelamento: LocalDateTime'),I('alteradoPor, canceladoPor: Usuario'),I('cancelar(motivo, usuario)')],'cyan'),
+'numof':('NumeracaoOficio',[N('ano: Integer (id)'),N('ultimoNumero: Integer'),I('proximoNumero()'),I('@Lock(PESSIMISTIC_WRITE) no repository')],'beige'),
 }
 def layout(T):
     h=lambda k:HEAD+2*PAD+len(T[k][1])*LH
     Y3=Y2+max(h(k) for k in ['oitiva','repasse','hc','hsp','notif'])+70
     return {'procedimento':(240,Y1,460),'usuario':(960,Y1,440),'role':(1580,Y1,380),
      'oitiva':(XS[0],Y2,COLW),'repasse':(XS[1],Y2,COLW),'hc':(XS[2],Y2,COLW),'hsp':(XS[3],Y2,COLW),'notif':(XS[4],Y2,COLW),
-     'oitiva_parte':(XS[0],Y3,COLW),'veiculo':(XS[1],Y3,COLW),'hsv':(XS[2],Y3,COLW)}
+     'oitiva_parte':(XS[0],Y3,COLW),'veiculo':(XS[1],Y3,COLW),'hsv':(XS[2],Y3,COLW),
+     'oficio':(XS[3],Y3,COLW),'numof':(XS[4],Y3,COLW)}
 def rep_hc(c,label):
     def f(B,ln,tx):
         A,Bb=B['repasse'],B['hc']; y=A['y']+150; x1,x2=A['x']+A['w'],Bb['x']
@@ -66,6 +71,8 @@ def edges(one,many,L):
      chan('repasse',.15,'procedimento',XS[1]+COLW*.15,7,many,one,L['procedimento']),
      chan('veiculo',0,'procedimento',370,8,many,one,L['procedimento'],via=('l',410,24)),
      chan('hsv',0,'usuario',1210,8,many,one,L['responsavel'],via=('r',1210,24)),
+     chan('oficio',0,'usuario',1240,3,many,one,L['cadastradoPor'],via=('r',XS[3]+COLW+20,30)),
+     chan('oficio',0,'procedimento',540,8,many,'0..1',L['procedimento'],via=('r',XS[3]+COLW+40,52)),
     ]
 LD={k:k for k in []}
 LD=dict(detentor='detentor_atual_id',role='role_id',oitiva='oitiva_id',veiculo='veiculo_id',repasseOrigem='repasse_origem_id',usuarioDestinatario='usuario_destinatario_id',

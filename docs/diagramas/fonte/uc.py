@@ -55,3 +55,13 @@ diagram('uc_oit',1360,1060,'Sistema - Modulo Oitivas',(460,40,860,980),
   'des':(880,500,240,'Desmarcar oitiva','salmon'),'con':(880,680,240,'Concluir oitiva','salmon'),'bus':(880,860,260,'Buscar / listar oitivas','lav')},
  [('srv','ag'),('srv','ed'),('srv','des'),('srv','con'),('srv','bus'),('est','ag'),('est','ed'),('est','des'),('est','con'),('est','bus')],
  gens=[('pol','srv'),('del','srv')])
+
+diagram('uc_ofi',1400,1300,'Sistema - Oficios Expedidos',(500,30,870,1250),
+ {'srv':(200,80,'Servidor','(abstrato)'),'pol':(100,420,'Policial',None),'del':(300,420,'Delegado',None),'est':(200,820,'Estagiario',None)},
+ {'reg':(930,110,280,'Registrar oficio expedido','lav'),'num':(1010,250,260,'Gerar numero do ano','beige'),
+  'con':(930,410,250,'Consultar oficios','lav'),'cor':(930,560,250,'Corrigir oficio','mint'),
+  'can':(930,710,250,'Cancelar oficio','salmon'),'exp':(930,860,290,'Exportar livro de oficios','salmon'),
+  'ini':(930,1140,330,'Definir numeracao inicial do ano','beige')},
+ [('srv','reg'),('srv','con'),('srv','cor'),('srv','can'),('srv','exp'),
+  ('est','reg'),('est','con'),('est','cor'),('est','can'),('est','exp'),('del','ini')],
+ gens=[('pol','srv'),('del','srv')],incs=[('reg','num')])
