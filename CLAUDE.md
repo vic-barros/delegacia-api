@@ -9,6 +9,7 @@ caso, depois da apresentação, com tudo mergeado, num PR único via refactor da
 - Documentação completa (visão, RFs, RNFs, casos de uso, diagramas): `docs/SISGEP_Documentacao.docx`
 - DER e diagrama de classes: `docs/diagramas/` (PDF e PNG)
 - Contrato das rotas para o front (JSON de entrada/saída e erros): `docs/endpoints.md`
+- Protótipo das telas do front (dados fictícios; seção 9 do docx): `docs/img/telas/`
 
 ## Stack
 
@@ -130,6 +131,11 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
   procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
   registro em histórico.
+  **Sem controle de prazo** (decisão: o sistema institucional da Polícia Civil já controla; o SISGEP é controle
+  interno) e **sem status REMETIDO**: "Remetidos" na listagem = filtro derivado (remessa final registrada).
+  Remetido que volta para diligências = reabrir. Listagem (RF36, colega): abas em andamento/arquivados/remetidos/
+  todos com contagem, filtros tipo (vários), ano, detentor e texto (número/crime), paginada, linha indica repasse
+  pendente.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
   `@Transactional`: `repasse.aceitar()`, `custodiaAtual.encerrar()`, novo `HistoricoCustodia(..., REPASSE, repasse)`
   e `procedimento.setDetentorAtual(destinatario)`.
@@ -137,7 +143,8 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   só o detentor atual solicita; destinatário Delegado/Policial/Estagiário APROVADO e diferente do solicitante;
   procedimento ARQUIVADO ou com repasse PENDENTE recusa (400); ids inexistentes 404. Notifica o destinatário
   (REPASSE_RECEBIDO, "procedimento IP 123/2026 de Fulano"). `saveAndFlush` para a `dataSolicitacao` vir preenchida.
-  Pendentes (colega): aceitar/recusar (UC09) com REPASSE_ACEITO/RECUSADO e listagem.
+  Pendentes (colega): aceitar/recusar (UC09) com REPASSE_ACEITO/RECUSADO e listagem (recebidos, enviados,
+  histórico). A implementar: `observacao` opcional (500) no `POST /repasses` e na resposta (tela de repasses).
 - **Oitiva**: Delegado, Policial e Estagiário agendam, editam, remarcam, desmarcam e concluem (o Estagiário conduz
   oitivas sob supervisão e agenda para os policiais); Admin não acessa. Responsável: Delegado, Policial ou
   Estagiário APROVADO. Procedimento ARQUIVADO não aceita oitiva (400 "Procedimento arquivado. É necessário
@@ -225,6 +232,26 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos
   (lista, ficha e etiqueta); participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem
   registra remessa e não exporta.
+- **Painel e Minha mesa (RF37/RF38, a implementar)**: só com os dados que já existem, nada salvo.
+  `GET /painel`: oitivas de hoje, repasses pendentes (recebidos e enviados pelo usuário), veículos NA_DEPOL/EM_PATIO
+  e com perícia pendente, procedimentos parados do usuário. Minha mesa: procedimentos com detentor = usuário logado,
+  "na posse há N dias" (`dataInicio` da custódia aberta), próxima oitiva, repasse em andamento, contagem dos chips e
+  "próximo passo" por prioridade: repasse pendente ("Aguardando aceite") → oitiva agendada ("Oitiva hoje, 16:30")
+  → parado ("Parado há N dias"). Parado = sem movimentação há mais de 60 dias (última data entre custódia,
+  histórico de status, oitiva cadastrada/concluída, repasse e histórico de veículo). "Repassar selecionados": o
+  front chama `POST /repasses` uma vez por procedimento e mostra o resultado de cada um.
+- **Outras lacunas do design (a implementar)**: busca global `GET /busca?q=` (procedimento "IP 45/2026", placa,
+  lacre, ofício; resultados agrupados); fotos da apreensão (`FotoVeiculo`: arquivo em disco/volume, não no banco;
+  só JPG/PNG até 5 MB conferindo o conteúdo real; envio Delegado/Policial, leitura todos; `POST/GET
+  /veiculos/{id}/fotos`, `GET /veiculos/fotos/{id}`); alterar a própria senha `PATCH /usuarios/me/senha` (pede a
+  atual). Ordem sugerida: Minha mesa + painel → ofícios → observação no repasse → senha → busca → fotos.
+  Ajustes do front: tirar prazo (coluna, chips, card, "Pedir prorrogação"), "Etiqueta impressa" não é situação
+  (sai do histórico) e incluir a tela de Ofícios no menu.
+- **Assistente de IA (colega, branch `feat/resumos-procedimentos`; docx 1.9, RF42, RNF14)**: resumo só para o
+  detentor atual; dados minimizados (partes pelo papel, ex.: "Testemunha 1"; sem matrícula/login); instruções
+  fixas (só os dados enviados, texto livre é dado e não instrução); conferência de datas/números citados; resposta
+  marcada como gerada por IA e não salva; chave só no `.env`; log de uso sem conteúdo; limite por usuário; demo só
+  com dados fictícios; provedor fora do ar não derruba o resto.
 
 ## Ambiente e dados iniciais
 
@@ -250,7 +277,9 @@ CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); c
 Em paralelo ao colega: documentação (docx, DER/diagramas, coleção Postman), OpenAPI/Swagger (gera o contrato das
 rotas automaticamente; hoje `docs/endpoints.md` é mantido à mão e ainda não cobre repasse, etiqueta e exportações),
 dados de demonstração, Docker (PR `chore/docker`, RNF11) e testes automatizados (hoje só `contextLoads`).
-Depois do repasse completo: rota de painel com contadores (oitivas do dia/atrasadas, repasses pendentes, carga).
+Docker (docx 1.8 e Figura 10): `docker-compose.yml` com front (Nginx + React compilado, HTTPS, repassa `/api`), api
+e banco (porta 5432 não publicada), `restart: unless-stopped`, volumes de dados e de fotos, backup diário com
+`pg_dump`; conferir se a PR `chore/docker` cobre isso.
 
 ## Melhorias futuras (fora do MVP)
 
@@ -262,22 +291,25 @@ Depois do repasse completo: rota de painel com contadores (oitivas do dia/atrasa
 - Gestão patrimonial da delegacia: bens com número de tombamento, categoria, setor/localização, servidor
   responsável, movimentações com histórico e baixa (armamento merece análise própria: cautela).
 - Anexo do PDF do ofício ao registro.
-- Assistente virtual com IA (colega, em desenvolvimento): chave da API só no back end (`.env`); consultar a API com o
-  token do usuário para respeitar as permissões; na demo só dados fictícios; em produção anonimização ou modelo local
-  (LGPD, sigilo da investigação).
-- Módulo de vínculos (colega, em desenvolvimento): grafo ligando pessoas, procedimentos, veículos e oitivas,
-  reaproveitando as entidades existentes.
+- Assistente virtual com IA em produção: provedor sem retenção dos dados ou modelo local (LGPD, sigilo).
+- Módulo de vínculos (colega, em desenvolvimento): grafo ligando pessoas, procedimentos, veículos e oitivas. A tela
+  pede entidade `Pessoa` (nome, CPF, nascimento) ligada ao procedimento com o papel; `OitivaParte.nomeParte` deveria
+  passar a apontar para `Pessoa` (senão a mesma pessoa vira vários registros). CPF mascarado na resposta da API.
+- Implantação centralizada multi-tenant (docx 1.8): login pelo provedor de identidade da Polícia Civil (OIDC/LDAP;
+  a API já é Resource Server, trocaria HS256 por RS256/JWKS), lotação (`Delegacia`) no SISGEP, `delegacia_id` com
+  `@TenantId` do Hibernate (ou schema por delegacia) e unicidades incluindo a delegacia.
 - Auditoria técnica com Hibernate Envers (`@Audited` + tabelas `_aud`/`revinfo`, com listener gravando o login do
   token): versões de todas as alterações, complementando os históricos de negócio (que guardam o motivo).
 
-## Decisões em aberto
+## Decisões registradas
 
-- Modelo de implantação (instância local por delegacia vs. SaaS multi-tenant) — ver seção 1.8 da documentação.
+- Implantação: instância local por delegacia com Docker Compose (sigilo/LGPD, soberania, funciona sem internet,
+  custo e escopo), com evolução prevista para multi-tenant centralizado — seção 1.8 da documentação (RNF11, RNF13).
 
 ## Diagramas
 
 Gerados por código em `docs/diagramas/fonte/` (Python gera HTML/SVG; Playwright/Chromium renderiza PNG e PDF).
-Para alterar uma tabela/classe, editar `spec.py` (DER e classes), `uc.py` (casos de uso, inclusive ofícios) ou `arq.py` (arquitetura) e rodar,
-dentro dessa pasta: `python3 spec.py && python3 uc.py && python3 arq.py && node render.js` (com `playwright` disponível no `NODE_PATH`).
+Para alterar uma tabela/classe, editar `spec.py` (DER e classes), `uc.py` (casos de uso, inclusive ofícios), `arq.py` (arquitetura) ou `impl.py`
+(implantação) e rodar, dentro dessa pasta: `python3 spec.py && python3 uc.py && python3 arq.py && python3 impl.py && node render.js` (com `playwright` disponível no `NODE_PATH`).
 Os arquivos gerados (`*.html`, `*.json`, `*.png`, `*.pdf`) saem na própria pasta; copiar os finais para
 `docs/diagramas/`.
