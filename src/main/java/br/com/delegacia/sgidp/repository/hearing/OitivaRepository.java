@@ -52,4 +52,6 @@ public interface OitivaRepository extends JpaRepository<Oitiva, Long> {
 
     // Para o arquivamento do procedimento: oitivas ainda AGENDADAS bloqueiam o arquivamento
     List<Oitiva> findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc(Long procedimentoId, StatusOitiva status);
+
+    List<Oitiva> findByProcedimentoIdOrderByDataCadastroAsc(Long procedimentoId);
 }

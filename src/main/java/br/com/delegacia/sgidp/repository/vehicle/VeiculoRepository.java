@@ -22,6 +22,8 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
 
     Optional<Veiculo> findFirstByMotorAndSituacaoVeiculoIn(String motor, Collection<SituacaoVeiculo> situacoes);
 
+    List<Veiculo> findByProcedimentoIdOrderByIdAsc(Long procedimentoId);
+
 
     // Busca com filtros opcionais: filtro nulo é ignorado (":x IS NULL OR ...").
     // JOIN FETCH traz o procedimento na mesma consulta (a resposta mostra "IP 123/2026")

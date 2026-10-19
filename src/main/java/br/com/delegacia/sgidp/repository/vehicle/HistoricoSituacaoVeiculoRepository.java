@@ -12,4 +12,5 @@ public interface HistoricoSituacaoVeiculoRepository extends JpaRepository<Histor
     // @EntityGraph traz o responsável junto (evita uma consulta extra por linha)
     @EntityGraph(attributePaths = "responsavel")
     List<HistoricoSituacaoVeiculo> findByVeiculoIdOrderByDataTransicaoAsc(Long veiculoId);
+    List<HistoricoSituacaoVeiculo> findByVeiculoProcedimentoIdOrderByDataTransicaoAsc(Long procedimentoId);
 }

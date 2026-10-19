@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/usuarios/cadastro").permitAll()
                         .requestMatchers(HttpMethod.GET, "/roles/cadastro").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // configuração provisória pra testes
+                        .requestMatchers("/dev/gemini").permitAll()
                         // Gestão de usuários: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
