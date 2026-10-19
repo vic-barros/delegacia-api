@@ -54,6 +54,28 @@ public class ResumoProcedimentoService {
                 .content();
     }
 
+    public String promptGemini(String contexto) {
+        return chatClient.prompt()
+                .system("""
+                                Você auxilia na elaboração de resumos de procedimentos policiais.
+
+                                Regras:
+                                - Utilize somente os dados fornecidos.
+                                - Não invete fatos, datas ou pessoas.
+                                - Não trate alegações como fatos comprovados.
+                                - Não conclua culpa ou responsabilidade.
+                                - Escreva em português, com clareza e objetividade.
+                                """)
+                .user(user -> user.text("""
+                                Elabore um resumo do procedimento com base exclusivamente no contexto abaixo.
+                                <contexto>
+                                {contexto}
+                                </contexto>
+                                """))
+                .call()
+                .content();
+    }
+
     public String criarContexto(Long procedimentoId) {
         // verifica se o procedimento existe
         Procedimento procedimento = procedimentoRepository.findById(procedimentoId)
@@ -90,5 +112,10 @@ public class ResumoProcedimentoService {
         );
 
         return contextoProcedimento.formatarParaIA();
+    }
+
+    public String gerarResumoProcedimento(Long procedimentoId) {
+        String contextoFormatado = criarContexto(procedimentoId);
+        return promptGemini(contextoFormatado);
     }
 }

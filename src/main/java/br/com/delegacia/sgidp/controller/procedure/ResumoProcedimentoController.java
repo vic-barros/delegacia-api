@@ -27,6 +27,6 @@ public class ResumoProcedimentoController {
     // rota usada pra testar o modelo de resumo
     @GetMapping("/resumo/{procedimentoId}")
     public String testeContexto(@PathVariable Long procedimentoId) {
-        return resumoProcedimentoService.criarContexto(procedimentoId);
+        return resumoProcedimentoService.gerarResumoProcedimento(procedimentoId);
     }
 }
