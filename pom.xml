@@ -96,6 +96,18 @@
             <artifactId>pdfbox</artifactId>
             <version>3.0.8</version>
         </dependency>
+
+        <!-- Exportação de procedimentos: planilha XLSX (Apache POI) e relatório PDF com tabela (OpenPDF) -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>3.0.5</version>
+        </dependency>
     </dependencies>
 
     <build>
