@@ -59,6 +59,20 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         // Gestão de usuários: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
+                        // gestão de procedimentos
+                        .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Exportação de Procedimento: Só Delegado e Policial
+                        .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
+                        .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        // Exportação de veículos (relatório de carga): só Delegado/Policial. Antes da regra de GET
+                        // abaixo, porque o Spring usa a primeira regra que combina com a rota
+                        .requestMatchers(HttpMethod.GET, "/veiculos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
+                        .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
+                        .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
+                        // Oitivas: Delegado, Policial e Estagiário
+                        .requestMatchers("/oitivas/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversorDePapeis())));
@@ -101,6 +115,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(Arrays.stream(origensPermitidas.split(",")).map(String::trim).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setExposedHeaders(List.of("Content-Disposition")); // Deixa o front ler o nome do arquivo baixado (exportação); sem isso o navegador esconde o cabeçalho
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

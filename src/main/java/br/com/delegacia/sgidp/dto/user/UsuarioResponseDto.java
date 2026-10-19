@@ -9,7 +9,8 @@ public record UsuarioResponseDto(
         String matricula,
         String login,
         StatusUsuario status,
-        String role
+        String role,
+        String motivoRejeicao
 ) {
 
     public static UsuarioResponseDto de(Usuario usuario) {
@@ -19,7 +20,8 @@ public record UsuarioResponseDto(
                 usuario.getMatricula(),
                 usuario.getLogin(),
                 usuario.getStatusUsuario(),
-                usuario.getRole().getAcesso()
+                usuario.getRole().getAcesso(),
+                usuario.getMotivoRejeicao()
         );
     }
 }

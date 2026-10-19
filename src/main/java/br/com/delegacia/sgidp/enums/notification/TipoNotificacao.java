@@ -6,6 +6,8 @@ import lombok.Getter;
 public enum TipoNotificacao {
 
     OITIVA_PROXIMA("Oitiva próxima"),
+    OITIVA_SEM_BAIXA("Oitiva sem baixa"),
+    OITIVA_ATRIBUIDA("Oitiva atribuída"),
     REPASSE_RECEBIDO("Repasse recebido"),
     REPASSE_ACEITO("Repasse aceito"),
     REPASSE_RECUSADO("Repasse recusado"),

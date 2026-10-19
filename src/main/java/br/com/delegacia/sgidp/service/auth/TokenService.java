@@ -1,4 +1,4 @@
-package br.com.delegacia.sgidp.security;
+package br.com.delegacia.sgidp.service.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;

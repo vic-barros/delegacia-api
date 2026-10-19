@@ -25,17 +25,18 @@ import java.util.TimeZone;
 @EnableTransactionManagement
 public class SgiDpApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SgiDpApplication.class, args);
-	}
+    public static void main(String[] args) {
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Sao_Paulo"));
+        SpringApplication.run(SgiDpApplication.class, args);
+    }
 
     @Bean(name = "cacheManager")
-    public CacheManager cacheManager(){
+    public CacheManager cacheManager() {
         return new ConcurrentMapCacheManager("cacheDelegaciaApi");
     }
 
     @PostConstruct
-    private void configTimeZone(){
+    private void configTimeZone() {
         Locale.setDefault(Locale.forLanguageTag("pt_BR"));
         TimeZone sp = TimeZone.getTimeZone("America/Sao_Paulo");
         TimeZone.setDefault(sp);

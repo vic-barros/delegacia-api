@@ -9,6 +9,7 @@ public enum StatusOitiva {
     CONCLUIDA("Concluída"),
     DESMARCADA("Desmarcada");
 
+
     private final String descricao;
 
     StatusOitiva(String descricao) {

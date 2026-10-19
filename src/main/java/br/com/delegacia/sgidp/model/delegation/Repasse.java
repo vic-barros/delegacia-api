@@ -53,7 +53,7 @@ public class Repasse {
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_repasse_solicitante"))
     private Usuario solicitante;
 
-    @NotNull(message = "O repaase do procedimento deve ter um usuário destinatário")
+    @NotNull(message = "O repasse do procedimento deve ter um usuário destinatário")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destinatario_id", nullable = false, updatable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_repasse_destinatario"))

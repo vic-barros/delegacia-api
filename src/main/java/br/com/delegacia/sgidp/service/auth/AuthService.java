@@ -6,7 +6,6 @@ import br.com.delegacia.sgidp.exception.CadastroNaoAprovadoException;
 import br.com.delegacia.sgidp.exception.CredenciaisInvalidasException;
 import br.com.delegacia.sgidp.model.user.Usuario;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
-import br.com.delegacia.sgidp.security.TokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,9 +31,12 @@ public class AuthService {
 
         switch (usuario.getStatusUsuario()) {
             case PENDENTE -> throw new CadastroNaoAprovadoException("Cadastro aguardando aprovação do administrador");
-            case REJEITADO -> throw new CadastroNaoAprovadoException("Cadastro rejeitado pelo administrador");
+            case REJEITADO -> throw new CadastroNaoAprovadoException(
+                    "Cadastro rejeitado pelo administrador. Motivo: " +
+                            usuario.getMotivoRejeicao());
             case DESATIVADO -> throw new CadastroNaoAprovadoException("Usuário desativado");
-            case APROVADO -> { }
+            case APROVADO -> {
+            }
         }
 
         return new TokenResponseDto(tokenService.gerar(usuario));

@@ -36,7 +36,7 @@ public class Oitiva {
     @Column(name = "status", nullable = false)
     private StatusOitiva statusOitiva = StatusOitiva.AGENDADA; //A oitiva inicia como agendada no cadastro
 
-    @Column(name = "motivo_cancelamento", nullable = true)
+    @Column(name = "motivo_cancelamento", nullable = true, length = 500)
     private String motivoCancelamento;
 
     @CreationTimestamp
@@ -60,6 +60,12 @@ public class Oitiva {
     @JoinColumn(name = "cadastrado_por_id", nullable = false, updatable = false,
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_usuario_cadastrado"))
     private Usuario cadastradoPor;
+
+    // Último usuário que alterou a oitiva (editar, remarcar, desmarcar, concluir). Nulo até a primeira alteração
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "alterado_por_id", nullable = true,
+    foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_alterado_por"))
+    private Usuario alteradoPor;
 
     //Oitiva e OitivaParte possuem relação de composição, por isso precisam desse elo
     @Size(min = 1, message = "A oitiva deve possuir ao menos uma parte")

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 
 import java.util.List;
 
@@ -62,5 +63,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErroResponseDto> corpoInvalido(HttpMessageNotReadableException e) {
         return resposta(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido ou mal formatado");
+    }
+
+    // Exceção para Erro 409 da Confirmação Necessária no Front
+    @ExceptionHandler(ConfirmacaoNecessariaException.class)
+    public ResponseEntity<ErroResponseDto> confirmacaoNecessaria(ConfirmacaoNecessariaException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErroResponseDto(HttpStatus.CONFLICT.value(),
+                e.getMessage(), List.of(e.getCampoConfirmacao())));
+    }
+
+    // Exceção para parâmetro obrigatório ausente (Ex: GET /procedimentos/exportar sem o "formato")
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErroResponseDto> parametroAusente(MissingServletRequestParameterException e) {
+        return resposta(HttpStatus.BAD_REQUEST, "Parâmetro obrigatório ausente: '" + e.getParameterName() + "'");
     }
 }
