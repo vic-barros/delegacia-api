@@ -57,4 +57,9 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
     List<Veiculo> buscarParaExportacao(Collection<SituacaoVeiculo> situacoes, StatusPericia statusPericia,
                                        Long procedimentoId, LocalDateTime entradaInicio, LocalDateTime entradaFim);
 
+    // Painel (RF37): contadores dos veículos sob responsabilidade da delegacia
+    long countBySituacaoVeiculo(SituacaoVeiculo situacao);
+
+    long countBySituacaoVeiculoAndStatusPericia(SituacaoVeiculo situacao, StatusPericia statusPericia);
+
 }
