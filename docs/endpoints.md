@@ -1,4 +1,4 @@
-# Documentação Técnica da API Backend SGI-DP
+# Documentação Técnica da API Backend SISGEP (antigo SGI-DP)
 
 Esta documentação foi estruturada com base nos endpoints atualmente já implementados no backend e no contrato dos DTOs. Ela serve como referência oficial para o frontend consumir a API.
 
@@ -938,6 +938,160 @@ Campos:
 
 ---
 
+## Endpoint: Exportar procedimentos
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/procedimentos/exportar`
+
+### Descrição:
+
+Gera o relatório dos procedimentos cadastrados no sistema em XLSX (planilha com filtro e cabeçalho fixo) ou PDF (A4 paisagem, com os filtros usados, quem gerou e quando). A resposta é o arquivo, não JSON.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO` ou `ROLE_POLICIAL`.
+
+### Parâmetros de Entrada
+
+#### Query Parameters
+
+- `formato`: enum `FormatoExportacao` (`XLSX` ou `PDF`), obrigatório
+- `dataInicio`: string `YYYY-MM-DD`, opcional (data de abertura a partir de)
+- `dataFim`: string `YYYY-MM-DD`, opcional (data de abertura até, inclusive)
+- `tipo`: enum `TipoProcedimento`, opcional
+- `status`: enum `StatusProcedimento` (`EM_ANDAMENTO` ou `ARQUIVADO`), opcional
+
+Exemplo: `/procedimentos/exportar?formato=PDF&tipo=IP&status=EM_ANDAMENTO`
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Corpo binário (o arquivo). Cabeçalhos:
+
+```http
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="procedimentos-20261020-1430.pdf"
+```
+
+- XLSX: `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, arquivo `.xlsx`
+- O CORS expõe `Content-Disposition`, então o front consegue ler o nome do arquivo (no `fetch`, usar `response.blob()` e o nome do cabeçalho para disparar o download)
+
+#### Erros comuns
+
+- 400 Bad Request: `formato` ausente ("Parâmetro obrigatório ausente: 'formato'"), valor de enum inválido ou data inicial posterior à final
+- 404 Not Found: "Nenhum procedimento encontrado com os filtros informados." (lista vazia não gera arquivo)
+- 403 Forbidden: Estagiário ou Admin
+
+---
+
+# 5.1) Repasses
+
+## Endpoint: Solicitar repasse de procedimento
+
+### Método HTTP:
+
+POST
+
+### Rota:
+
+`/repasses`
+
+### Descrição:
+
+O detentor atual de um procedimento solicita o repasse da custódia para outro servidor. O repasse nasce `PENDENTE` e a custódia só muda quando o destinatário aceitar. O destinatário recebe a notificação `REPASSE_RECEBIDO`.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Body (Payload)
+
+```json
+{
+  "idDestinatario": 3,
+  "idProcedimento": 6
+}
+```
+
+Campos:
+
+- `idDestinatario`: number, obrigatório (Delegado, Policial ou Estagiário com cadastro aprovado)
+- `idProcedimento`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (201 Created)
+
+```json
+{
+  "id": 1,
+  "statusRepasse": "PENDENTE",
+  "justificativaRecusa": null,
+  "dataSolicitacao": "2026-10-20T14:30:00",
+  "dataResposta": null,
+  "procedimento": {
+    "id": 6,
+    "tipoProcedimento": "BO",
+    "numeroProcedimento": 22,
+    "anoProcedimento": 2026,
+    "crime": "Furto de carro",
+    "dataAbertura": "2026-10-03",
+    "dataRemessaFinal": null,
+    "protocoloRemessaFinal": null,
+    "statusProcedimento": "EM_ANDAMENTO",
+    "detentorAtual": {
+      "id": 2,
+      "nome": "Delegado",
+      "matricula": "2025",
+      "login": "joao",
+      "status": "APROVADO",
+      "role": "ROLE_DELEGADO",
+      "motivoRejeicao": null
+    }
+  },
+  "solicitante": {
+    "id": 2,
+    "nome": "Delegado",
+    "matricula": "2025",
+    "login": "joao",
+    "status": "APROVADO",
+    "role": "ROLE_DELEGADO",
+    "motivoRejeicao": null
+  },
+  "destinatario": {
+    "id": 3,
+    "nome": "Policial",
+    "matricula": "2026",
+    "login": "maria",
+    "status": "APROVADO",
+    "role": "ROLE_POLICIAL",
+    "motivoRejeicao": null
+  }
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request:
+  - campos ausentes
+  - "O procedimento informado não pertence ao solicitante."
+  - "Não é possível repassar um procedimento para si próprio."
+  - "O destinatário deve ser Delegado, Policial ou Estagiário com cadastro aprovado"
+  - "Não é possível solicitar um repasse para um procedimento arquivado."
+  - "Já existe um repasse pendente para esse procedimento."
+- 404 Not Found: "Destinatário não encontrado." ou "Procedimento não encontrado."
+- 403 Forbidden: Admin
+
+---
+
 # 5.5) Oitivas
 
 ## Endpoint: Agendar oitiva
@@ -1788,6 +1942,288 @@ Campos:
 
 ---
 
+## Endpoint: Etiqueta do veículo (PDF com QR code)
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/veiculos/{id}/etiqueta`
+
+### Descrição:
+
+Gera a etiqueta adesiva do veículo em PDF de 100 x 50 mm: unidade, lacre, tipo/marca/modelo, cor, placa (se houver), procedimento, data de entrada e data/hora da impressão, com um QR code. O QR leva para a tela do front `/veiculos/lacre/{lacre}` (exige login; o QR não carrega dados do veículo). A etiqueta não traz nomes de pessoas.
+
+### Autenticação:
+
+Requer JWT. Qualquer usuário autenticado (inclusive Estagiário).
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Corpo binário (PDF). Cabeçalhos:
+
+```http
+Content-Type: application/pdf
+Content-Disposition: inline; filename="etiqueta-veiculo-1.pdf"
+```
+
+`inline` faz o navegador abrir o PDF na tela (para imprimir), em vez de baixar.
+
+#### Erros comuns
+
+- 404 Not Found: "Veículo não encontrado"
+- 401 Unauthorized: token ausente ou inválido
+
+---
+
+## Endpoint: Exportar veículos / relatório de carga
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/veiculos/exportar`
+
+### Descrição:
+
+Gera o relatório dos veículos apreendidos em XLSX ou PDF (A4 paisagem). O PDF traz a coluna "Conferido" em branco e a linha de assinatura para a conferência física. Quando o filtro de situação é exatamente `NA_DEPOL` + `EM_PATIO` (em qualquer ordem), o arquivo vira o **relatório de carga**: título próprio, totais por situação e nome `carga-veiculos-...`. A resposta é o arquivo, não JSON.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO` ou `ROLE_POLICIAL`.
+
+### Parâmetros de Entrada
+
+#### Query Parameters
+
+- `formato`: enum `FormatoExportacao` (`XLSX` ou `PDF`), obrigatório
+- `situacao`: enum `SituacaoVeiculo`, opcional e **repetível** (sem nenhuma = todas)
+- `statusPericia`: enum `StatusPericia`, opcional
+- `procedimentoId`: number, opcional
+- `dataInicio`: string `YYYY-MM-DD`, opcional (data de entrada a partir de)
+- `dataFim`: string `YYYY-MM-DD`, opcional (data de entrada até, inclusive)
+
+A data de entrada é a primeira linha do histórico de situação do veículo.
+
+Exemplos:
+
+- Relatório de carga: `/veiculos/exportar?formato=PDF&situacao=NA_DEPOL&situacao=EM_PATIO`
+- Só os que estão na DEPOL: `/veiculos/exportar?formato=PDF&situacao=NA_DEPOL`
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Corpo binário (o arquivo). Cabeçalhos:
+
+```http
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="carga-veiculos-20261020-1430.pdf"
+```
+
+Nome do arquivo: `carga-veiculos-AAAAMMDD-HHMM` no relatório de carga; `veiculos-AAAAMMDD-HHMM` nos demais. XLSX com `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+
+#### Erros comuns
+
+- 400 Bad Request: `formato` ausente, valor de enum inválido ou data inicial posterior à final
+- 404 Not Found: "Nenhum veículo encontrado com os filtros informados." (lista vazia não gera arquivo)
+- 403 Forbidden: Estagiário ou Admin
+
+---
+
+# 6.5) Painel e Minha mesa
+
+Visões calculadas na hora a partir dos dados já registrados (nada é gravado). Cada usuário vê apenas os próprios
+dados: o login vem do token, nenhuma rota recebe id de usuário.
+
+## Endpoint: Minha mesa
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/painel/minha-mesa`
+
+### Descrição:
+
+Lista os procedimentos EM_ANDAMENTO cuja posse é do usuário logado, com tempo de posse, próxima oitiva, repasse em
+andamento, última movimentação e um indicativo de próximo passo. Também devolve os números dos chips da tela.
+
+Regras:
+
+- `proximoPasso` segue a prioridade: `AGUARDANDO_ACEITE` (repasse pendente) → `OITIVA_ATRASADA` (oitiva agendada
+  com data passada, sem baixa) → `OITIVA_AGENDADA` → `PARADO` → `NENHUM`. `descricaoProximoPasso` traz o texto pronto
+  para exibir (ex.: "Oitiva hoje, 16:30", "Aguardando aceite de Ana Lima", "Parado há 63 dias", "Sem pendências").
+- `ultimaMovimentacao` = data mais recente entre custódia, histórico de status, oitiva (cadastro ou conclusão),
+  repasse (solicitação ou resposta) e histórico de situação dos veículos do procedimento.
+- `parado` = mais de 60 dias sem movimentação.
+- Ordem da lista: próximo passo (mais urgente primeiro), depois oitiva mais próxima, depois movimentação mais antiga.
+- Campos de oitiva e de repasse vêm `null` quando não há oitiva agendada ou repasse pendente.
+- "Repassar selecionados": o front chama `POST /repasses` uma vez por procedimento e mostra o resultado de cada um.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+Nenhum.
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+{
+  "total": 5,
+  "comOitivaMarcada": 3,
+  "repasseEmAndamento": 1,
+  "parados": 1,
+  "procedimentos": [
+    {
+      "id": 1,
+      "procedimento": "IP 901/2026",
+      "crime": "Furto",
+      "naPosseDesde": "2026-10-20T10:15:02",
+      "diasNaPosse": 0,
+      "proximaOitivaId": null,
+      "proximaOitiva": null,
+      "oitivaAtrasada": false,
+      "repassePendenteId": 4,
+      "repasseDestinatario": "Ana Lima",
+      "ultimaMovimentacao": "2026-10-20T10:16:40",
+      "diasSemMovimentacao": 0,
+      "parado": false,
+      "proximoPasso": "AGUARDANDO_ACEITE",
+      "descricaoProximoPasso": "Aguardando aceite de Ana Lima"
+    },
+    {
+      "id": 3,
+      "procedimento": "IP 903/2026",
+      "crime": "Roubo",
+      "naPosseDesde": "2026-10-20T10:15:10",
+      "diasNaPosse": 0,
+      "proximaOitivaId": 7,
+      "proximaOitiva": "2026-10-20T18:00:00",
+      "oitivaAtrasada": false,
+      "repassePendenteId": null,
+      "repasseDestinatario": null,
+      "ultimaMovimentacao": "2026-10-20T10:18:03",
+      "diasSemMovimentacao": 0,
+      "parado": false,
+      "proximoPasso": "OITIVA_AGENDADA",
+      "descricaoProximoPasso": "Oitiva hoje, 18:00"
+    }
+  ]
+}
+```
+
+Sem procedimentos na posse: `{"total": 0, "comOitivaMarcada": 0, "repasseEmAndamento": 0, "parados": 0, "procedimentos": []}`.
+
+#### Erros comuns
+
+- 401 Unauthorized: token ausente ou inválido
+- 403 Forbidden: Admin (não acessa o painel)
+
+---
+
+## Endpoint: Painel inicial
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/painel`
+
+### Descrição:
+
+Indicadores da tela inicial do usuário logado:
+
+- `oitivasHoje`: oitivas de hoje em que o usuário é o responsável, sem as desmarcadas (mesmo formato de `GET /oitivas`)
+- `repassesRecebidos` / `repassesEnviados`: repasses PENDENTES em que o usuário é destinatário / solicitante
+- `veiculos`: veículos que estão na DEPOL (situação `NA_DEPOL`); `semPericia` e `periciaEmAndamento` são partes do
+  `total` (os veículos no pátio não entram no card)
+- `procedimentosParados`: linhas paradas da Minha mesa (mesmo formato de `GET /painel/minha-mesa`)
+
+Não há indicadores de prazo: o controle de prazos processuais é feito pelo sistema institucional da Polícia Civil.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+Nenhum.
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+{
+  "oitivasHoje": [
+    {
+      "id": 7,
+      "dataHora": "2026-10-20T18:00:00",
+      "status": "AGENDADA",
+      "atrasada": false,
+      "procedimentoId": 3,
+      "procedimento": "IP 903/2026",
+      "responsavelId": 2,
+      "responsavel": "Carlos Souza",
+      "partes": [
+        { "tipoParte": "VITIMA", "nomeParte": "Maria Exemplo" }
+      ],
+      "motivoCancelamento": null,
+      "cadastradoPor": "Carlos Souza",
+      "alteradoPor": null,
+      "dataCadastro": "2026-10-20T10:18:03"
+    }
+  ],
+  "repassesRecebidos": [],
+  "repassesEnviados": [
+    {
+      "id": 4,
+      "procedimentoId": 1,
+      "procedimento": "IP 901/2026",
+      "crime": "Furto",
+      "solicitante": "Carlos Souza",
+      "destinatario": "Ana Lima",
+      "dataSolicitacao": "2026-10-20T10:16:40"
+    }
+  ],
+  "veiculos": {
+    "total": 12,
+    "semPericia": 4,
+    "periciaEmAndamento": 2
+  },
+  "procedimentosParados": []
+}
+```
+
+#### Erros comuns
+
+- 401 Unauthorized: token ausente ou inválido
+- 403 Forbidden: Admin (não acessa o painel)
+
+---
+
 # 7) Considerações finais
 
 ## Regras práticas de consumo
@@ -1800,3 +2236,4 @@ Campos:
 - Para filtros e listagens, usar query params em vez de body
 - Os enums devem ser enviados em texto exatamente como o backend define
 - Em erros de validação, o frontend deve ler `detalhes` e mapear os campos do payload
+- Rotas que devolvem arquivo (exportações e etiqueta) respondem com corpo binário: no `fetch`, usar `response.blob()`; o nome do arquivo vem no cabeçalho `Content-Disposition` (exposto pelo CORS). Em erro, o corpo continua sendo o JSON de `ErroResponseDto`

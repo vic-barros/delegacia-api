@@ -275,7 +275,8 @@ CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); c
 `CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
 
 Em paralelo ao colega: documentação (docx, DER/diagramas, coleção Postman), OpenAPI/Swagger (gera o contrato das
-rotas automaticamente; hoje `docs/endpoints.md` é mantido à mão e ainda não cobre repasse, etiqueta e exportações),
+rotas automaticamente; decidido manter `docs/endpoints.md` à mão, documento do colega, já com repasse, etiqueta,
+exportações e painel),
 dados de demonstração, Docker (PR `chore/docker`, RNF11) e testes automatizados (hoje só `contextLoads`).
 Docker (docx 1.8 e Figura 10): `docker-compose.yml` com front (Nginx + React compilado, HTTPS, repassa `/api`), api
 e banco (porta 5432 não publicada), `restart: unless-stopped`, volumes de dados e de fotos, backup diário com
