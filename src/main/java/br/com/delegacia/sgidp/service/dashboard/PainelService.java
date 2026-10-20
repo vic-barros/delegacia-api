@@ -4,7 +4,6 @@ import br.com.delegacia.sgidp.dto.dashboard.PainelResponseDto;
 import br.com.delegacia.sgidp.dto.dashboard.ProcedimentoMesaResponseDto;
 import br.com.delegacia.sgidp.dto.dashboard.RepassePainelResponseDto;
 import br.com.delegacia.sgidp.dto.dashboard.VeiculoPainelResponseDto;
-import br.com.delegacia.sgidp.dto.dashboard.VeiculoPainelResponseDto;
 import br.com.delegacia.sgidp.dto.hearing.OitivaResponseDto;
 import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.examination.StatusPericia;
