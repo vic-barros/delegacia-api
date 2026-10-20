@@ -1,6 +1,6 @@
 package br.com.delegacia.sgidp.controller.procedure;
 
-import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoDto;
+import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoResponseDto;
 import br.com.delegacia.sgidp.service.procedure.ProcedimentoService;
@@ -26,7 +26,7 @@ public class ProcedimentoController {
 
     @PatchMapping("/{id}/arquivar")
     @ResponseStatus(HttpStatus.OK)
-    public ProcedimentoResponseDto arquivarProcedimento(@PathVariable Long id, @RequestBody @Valid ArquivarProcedimentoDto dto, @AuthenticationPrincipal Jwt jwt) {
+    public ProcedimentoResponseDto arquivarProcedimento(@PathVariable Long id, @RequestBody @Valid ArquivarProcedimentoRequestDto dto, @AuthenticationPrincipal Jwt jwt) {
         return procedimentoService.arquivar(id, dto, jwt.getSubject());
     }
 }

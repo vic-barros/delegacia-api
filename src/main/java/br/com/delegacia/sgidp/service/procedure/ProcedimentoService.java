@@ -1,6 +1,6 @@
 package br.com.delegacia.sgidp.service.procedure;
 
-import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoDto;
+import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoResponseDto;
 import br.com.delegacia.sgidp.enums.custody.OrigemHistoricoCustodia;
@@ -102,7 +102,7 @@ public class ProcedimentoService {
         return ProcedimentoResponseDto.de(procedimento);
     }
 
-    public ProcedimentoResponseDto arquivar(Long id, ArquivarProcedimentoDto dto, String login) {
+    public ProcedimentoResponseDto arquivar(Long id, ArquivarProcedimentoRequestDto dto, String login) {
         Usuario usuario = usuarioRepository.findByLogin(login)
                 .orElseThrow(() -> new RegraNegocioException(
                         "Usuário autenticado não encontrado"
