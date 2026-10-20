@@ -1,16 +1,20 @@
 package br.com.delegacia.sgidp.service.procedure;
 
+import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoResponseDto;
 import br.com.delegacia.sgidp.enums.custody.OrigemHistoricoCustodia;
+import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
 import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
+import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
 import br.com.delegacia.sgidp.model.procedure.HistoricoStatusProcedimento;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
 import br.com.delegacia.sgidp.model.user.Usuario;
 import br.com.delegacia.sgidp.repository.custody.HistoricoCustodiaRepository;
+import br.com.delegacia.sgidp.repository.delegation.RepasseRepository;
 import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.procedure.HistoricoStatusProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
@@ -28,6 +32,7 @@ public class ProcedimentoService {
     private final HistoricoCustodiaRepository historicoCustodiaRepository;
     private final HistoricoStatusProcedimentoRepository historicoStatusProcedimentoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final RepasseRepository repasseRepository;
 
     
     @Transactional
@@ -93,6 +98,37 @@ public class ProcedimentoService {
         historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(
                 procedimento, null, StatusProcedimento.EM_ANDAMENTO, "Cadastro do procedimento", usuario
         ));
+
+        return ProcedimentoResponseDto.de(procedimento);
+    }
+
+    public ProcedimentoResponseDto arquivar(Long id, ArquivarProcedimentoDto dto, String login) {
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new RegraNegocioException(
+                        "Usuário autenticado não encontrado"
+                ));
+        
+        Procedimento procedimento = procedimentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Procedimento não encontrado"
+                ));
+        
+        if (!usuario.getId().equals(procedimento.getDetentorAtual().getId())) {
+                throw new RegraNegocioException("Procedimento não encontrado"); //proposital, o usuário não deve saber se o procedimento existe caso não pertença a ele
+        }
+
+        if (procedimento.getStatusProcedimento() == StatusProcedimento.ARQUIVADO) {
+                throw new RegraNegocioException("O procedimento já está arquivado");
+        }
+
+        if (repasseRepository.existsByProcedimentoIdAndStatusRepasse(procedimento.getId(), StatusRepasse.PENDENTE)) {
+                throw new RegraNegocioException("Não é possível arquivar o procedimento enquanto houver repasses pendentes");
+        }
+
+        StatusProcedimento statusAnterior = procedimento.getStatusProcedimento();
+        procedimento.setStatusProcedimento(StatusProcedimento.ARQUIVADO);
+
+        historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(procedimento, statusAnterior, StatusProcedimento.ARQUIVADO, dto.motivo(), usuario));
 
         return ProcedimentoResponseDto.de(procedimento);
     }
