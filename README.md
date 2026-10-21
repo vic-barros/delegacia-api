@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  Projeto do <strong>Instituto Federal de Sergipe (IFS)</strong> submetido ao <strong>Inovathon</strong>, equipe <strong>Delegacia 4.0</strong>.<br>
+  Projeto desenvolvido por alunos do <strong>IFS</strong> e submetido ao <strong>Inovathon</strong> pela equipe <strong>Delegacia 4.0</strong>.<br>
   Front-end (React): <a href="https://github.com/jaopzj/sisgep-frontend">jaopzj/sisgep-frontend</a>
 </p>
 
@@ -18,34 +18,34 @@
 
 ## Sobre o projeto
 
-Desenvolvimento de uma API REST voltada à gestão e ao controle interno de delegacias policiais, contemplando o
+<p align="justify">&emsp;&emsp;Desenvolvimento de uma API REST voltada à gestão e ao controle interno de delegacias policiais, contemplando o
 registro, o acompanhamento e a rastreabilidade da posse e do repasse de procedimentos entre policiais, das oitivas e
 dos veículos apreendidos. A solução permite registrar o histórico das movimentações, identificando responsabilidades
-e garantindo maior segurança, organização e transparência na gestão das informações.
+e garantindo maior segurança, organização e transparência na gestão das informações.</p>
 
-O projeto é estruturado de forma escalável, possibilitando sua evolução para um sistema integrado de gestão
+<p align="justify">&emsp;&emsp;O projeto é estruturado de forma escalável, possibilitando sua evolução para um sistema integrado de gestão
 administrativa policial, com a futura implementação de módulos para emissão e controle de ofícios, gestão da cadeia
 de custódia de objetos apreendidos e administração de bens patrimoniais vinculados a cada delegacia, centralizando
-informações e reduzindo a dependência de controles manuais, planilhas e registros físicos.
+informações e reduzindo a dependência de controles manuais, planilhas e registros físicos.</p>
 
 ## O problema
 
-Na rotina cartorária de uma delegacia, **todo o controle interno ainda é feito em livros, planilhas e papel**. Não
-existe hoje um sistema para isso: quem está com cada procedimento, a quem ele foi repassado, quando cada oitiva foi
-marcada, onde está cada veículo apreendido e o que compõe a carga da unidade são anotados à mão.
+<p align="justify">&emsp;&emsp;Na rotina cartorária de uma delegacia, <strong>todo o controle interno ainda é feito em livros, planilhas e
+papel</strong>. Não existe hoje um sistema para isso: quem está com cada procedimento, a quem ele foi repassado,
+quando cada oitiva foi marcada, onde está cada veículo apreendido e o que compõe a carga da unidade são anotados à mão.</p>
 
-Isso gera perda de rastreabilidade, retrabalho e dificuldade na conferência da carga da unidade, e dificulta que a
-Polícia Civil cumpra a sua atividade-fim, a investigação criminal e o atendimento ao público, porque grande parte do
-tempo é gasta com uma gestão ineficiente da custódia e do cartório.
+<p align="justify">&emsp;&emsp;Isso gera perda de rastreabilidade, retrabalho e dificuldade na conferência da carga da unidade, e dificulta
+que a Polícia Civil cumpra a sua atividade-fim, a investigação criminal e o atendimento ao público, porque grande
+parte do tempo é gasta com uma gestão ineficiente da custódia e do cartório.</p>
 
 ## A inovação
 
-O SISGEP **não substitui um sistema existente: ele sistematiza pela primeira vez** um controle que hoje não tem
-nenhuma ferramenta. Posse, repasse, oitivas, veículos e carga passam a ter registro único, histórico de cada
-movimentação e responsável identificado, com acesso por perfil.
+<p align="justify">&emsp;&emsp;O SISGEP <strong>não substitui um sistema existente: ele sistematiza pela primeira vez</strong> um controle que
+hoje não tem nenhuma ferramenta. Posse, repasse, oitivas, veículos e carga passam a ter registro único, histórico de
+cada movimentação e responsável identificado, com acesso por perfil.</p>
 
-O controle de **prazos processuais** continua no sistema institucional da Polícia Civil, que já o realiza: o SISGEP
-cobre o que ficava de fora, o controle interno da delegacia.
+<p align="justify">&emsp;&emsp;O controle de <strong>prazos processuais</strong> continua no sistema institucional da Polícia Civil, que já
+o realiza: o SISGEP cobre o que ficava de fora, o controle interno da delegacia.</p>
 
 ## Funcionalidades
 
@@ -71,14 +71,15 @@ cobre o que ficava de fora, o controle interno da delegacia.
 
 ## Arquitetura
 
-API REST em camadas (Controller → Service → Repository) consumida por uma SPA em React. A autenticação é
-stateless (JWT validado pelo Spring Security) e a autorização é feita por perfil em cada rota.
+<p align="justify">&emsp;&emsp;API REST em camadas (Controller → Service → Repository) consumida por uma SPA em React. A autenticação é
+stateless (JWT validado pelo Spring Security) e a autorização é feita por perfil em cada rota.</p>
 
 <p align="center"><img src="docs/diagramas/arquitetura.png" alt="Arquitetura" width="560"></p>
 
-**Implantação:** uma instância por delegacia, na rede interna, com Docker Compose (front, API e banco). Os dados
-ficam na unidade (sigilo da investigação e LGPD) e o sistema funciona sem internet. A evolução para uma
-implantação centralizada (multi-tenant, com o login da intranet da Polícia Civil) está prevista na documentação.
+<p align="justify">&emsp;&emsp;<strong>Implantação:</strong> uma instância por delegacia, na rede interna, com Docker Compose (front, API e
+banco). Os dados ficam na unidade (sigilo da investigação e LGPD) e o sistema funciona sem internet. A evolução para
+uma implantação centralizada (multi-tenant, com o login da intranet da Polícia Civil) está prevista na
+documentação.</p>
 
 ## Tecnologias
 
@@ -102,10 +103,11 @@ implantação centralizada (multi-tenant, com o login da intranet da Polícia Ci
 
 ### Dados de demonstração
 
-O script [`docs/demo/dados-demonstracao.sql`](docs/demo/dados-demonstracao.sql) popula um banco **de
-demonstração** com dados fictícios (usuários, procedimentos, oitivas, pessoas, veículos e repasses), com datas
-relativas ao dia em que é executado. Depois de subir a API uma vez, rode o script no pgAdmin/DBeaver e entre com
-`vbarros` / `Demo@2026`. O script apaga os dados anteriores do banco (menos perfis e Admin): use um banco só para isso.
+<p align="justify">&emsp;&emsp;O script <a href="docs/demo/dados-demonstracao.sql"><code>docs/demo/dados-demonstracao.sql</code></a> popula um
+banco <strong>de demonstração</strong> com dados fictícios (usuários, procedimentos, oitivas, pessoas, veículos e
+repasses), com datas relativas ao dia em que é executado. Depois de subir a API uma vez, rode o script no
+pgAdmin/DBeaver e entre com <code>vbarros</code> / <code>Demo@2026</code>. O script apaga os dados anteriores do
+banco (menos perfis e Admin): use um banco só para isso.</p>
 
 ## Documentação
 
@@ -121,7 +123,7 @@ relativas ao dia em que é executado. Depois de subir a API uma vez, rode o scri
 
 ## Próximos passos
 
-O objetivo é que o SISGEP centralize a custódia e a organização interna da delegacia:
+<p align="justify">&emsp;&emsp;O objetivo é que o SISGEP centralize a custódia e a organização interna da delegacia:</p>
 
 - **Controle de ofícios expedidos**, substituindo o livro cartorário (já especificado: RF30 a RF35)
 - **Custódia de objetos apreendidos**
@@ -134,6 +136,8 @@ O objetivo é que o SISGEP centralize a custódia e a organização interna da d
 - Implantação centralizada multi-tenant, com o login da intranet institucional
 
 ## Equipe
+
+Alunos do IFS, equipe <strong>Delegacia 4.0</strong>:
 
 - **Laíssa Victória Barros** (líder)
 - Elton Ramon Alves Santos
