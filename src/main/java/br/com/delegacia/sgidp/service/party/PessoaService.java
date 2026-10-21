@@ -26,6 +26,7 @@ public class PessoaService {
     private final OitivaParteRepository oitivaParteRepository;
     private final UsuarioRepository usuarioRepository;
 
+    @Transactional
     public PessoaResponseDto cadastrar(PessoaRequestDto dados, String loginLogado) {
         Usuario usuario = usuarioRepository.findByLogin(loginLogado)
                 .orElseThrow(() -> new RegraNegocioException("Usuário autenticado não encontrado"));
@@ -47,14 +48,17 @@ public class PessoaService {
 
         if (nome == null || nome.isBlank()) {
             filtroNome = null;
+        } else {
+            filtroNome = nome.trim();
         }
-        filtroNome = nome.trim();
+
 
         return pessoaRepository.buscar(filtroNome, normalizarCpf(cpf)).stream()
                 .map(PessoaResumoResponseDto::de)
                 .toList();
     }
 
+    @Transactional
     public PessoaResponseDto editar(Long id, PessoaRequestDto dados) {
         Pessoa pessoa = buscarPessoa(id);
         String cpf = normalizarCpf(dados.cpf());

@@ -27,7 +27,7 @@ public class Pessoa {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_pessoa")
     private Long id;
 
-    @NotBlank(message = "O nome a pessoa deve ser informado")
+    @NotBlank(message = "O nome da pessoa deve ser informado")
     @Column(nullable = false, length = 150)
     private String nome;
 
@@ -36,9 +36,6 @@ public class Pessoa {
 
     @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
-
-    @Column(name = "nome_mae", length = 150)
-    private String nomeMae;
 
     @Column(length = 100)
     private String alcunha;
