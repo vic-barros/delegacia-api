@@ -9,11 +9,13 @@ import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.hearing.Oitiva;
 import br.com.delegacia.sgidp.model.hearing.OitivaParte;
+import br.com.delegacia.sgidp.model.party.Pessoa;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
 import br.com.delegacia.sgidp.model.user.Usuario;
 import br.com.delegacia.sgidp.repository.hearing.OitivaRepository;
 import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
+import br.com.delegacia.sgidp.service.party.PessoaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ public class OitivaService {
     private static final long JANELA_CONFLITO_MINUTOS = 59;
 
     private final OitivaNotificacaoService oitivaNotificacaoService;
+    private final PessoaService pessoaService;
 
     private static final DateTimeFormatter FORMATO_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
 
@@ -64,7 +67,7 @@ public class OitivaService {
         oitiva.setCadastradoPor(usuarioLogado);
         // statusOitiva já começa AGENDADA na entidade
         for (OitivaParteRequestDto parte : dados.partes()) {
-            oitiva.adicionarParte(new OitivaParte(parte.tipoParte(), parte.nomeParte().trim()));
+            oitiva.adicionarParte(criarParte(parte));
         }
         oitivaRepository.save(oitiva);
 
@@ -137,7 +140,7 @@ public class OitivaService {
             oitiva.removerParte(parte);
         }
         for (OitivaParteRequestDto parte : dados.partes()) {
-            oitiva.adicionarParte(new OitivaParte(parte.tipoParte(), parte.nomeParte().trim()));
+            oitiva.adicionarParte(criarParte(parte));
         }
 
         oitiva.setAlteradoPor(usuarioLogado);
@@ -193,6 +196,15 @@ public class OitivaService {
     }
 
     // ---------- métodos auxiliares ----------
+
+    // Parte da oitiva: se veio pessoaId, liga à pessoa cadastrada (404 se não existir); senão, só o nome
+    private OitivaParte criarParte(OitivaParteRequestDto dados) {
+        Pessoa pessoa = null;
+        if (dados.pessoaId() != null) {
+            pessoa = pessoaService.buscarPessoa(dados.pessoaId());
+        }
+        return new OitivaParte(dados.tipoParte(), dados.nomeParte().trim(), pessoa);
+    }
 
     private Oitiva buscarOitiva(Long id) {
         return oitivaRepository.findById(id)
