@@ -5,6 +5,7 @@ import br.com.delegacia.sgidp.dto.procedure.ProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoResponseDto;
 import br.com.delegacia.sgidp.enums.custody.OrigemHistoricoCustodia;
 import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
+import br.com.delegacia.sgidp.enums.hearing.StatusOitiva;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
 import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
 import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
@@ -15,6 +16,7 @@ import br.com.delegacia.sgidp.model.procedure.Procedimento;
 import br.com.delegacia.sgidp.model.user.Usuario;
 import br.com.delegacia.sgidp.repository.custody.HistoricoCustodiaRepository;
 import br.com.delegacia.sgidp.repository.delegation.RepasseRepository;
+import br.com.delegacia.sgidp.repository.hearing.OitivaRepository;
 import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.procedure.HistoricoStatusProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
@@ -33,6 +35,7 @@ public class ProcedimentoService {
     private final HistoricoStatusProcedimentoRepository historicoStatusProcedimentoRepository;
     private final UsuarioRepository usuarioRepository;
     private final RepasseRepository repasseRepository;
+    private final OitivaRepository oitivaRepository;
 
     
     @Transactional
@@ -124,6 +127,10 @@ public class ProcedimentoService {
 
         if (repasseRepository.existsByProcedimentoIdAndStatusRepasse(procedimento.getId(), StatusRepasse.PENDENTE)) {
                 throw new RegraNegocioException("Não é possível arquivar o procedimento enquanto houver repasses pendentes");
+        }
+
+        if (!oitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc(id, StatusOitiva.AGENDADA).isEmpty()) {
+                throw new RegraNegocioException("Não é possível arquivar o procedimento enquanto houver oitivas agendadas");
         }
 
         StatusProcedimento statusAnterior = procedimento.getStatusProcedimento();
