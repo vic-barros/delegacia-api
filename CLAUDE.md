@@ -1,7 +1,10 @@
 # SISGEP — Sistema Interno de Gestão Policial (v2)
 
 API REST em Spring Boot para controle de oitivas, custódia de procedimentos policiais e veículos apreendidos.
-Projeto acadêmico/portfólio (IFS, Inovathon). Reescrita da v1 (Java puro + JDBC) com arquitetura em camadas.
+Projeto acadêmico/portfólio (IFS, Inovathon, equipe Delegacia 4.0: Laíssa Victória Barros (líder), Elton Ramon
+Alves Santos, Erick Marques Santos Bomfim, Hebert Ruan do Nascimento Feitosa, João Pedro da Silva Carvalho).
+Front-end: https://github.com/jaopzj/sisgep-frontend. Dados de demonstração: `docs/demo/dados-demonstracao.sql`
+(fictícios, datas relativas ao dia, login `vbarros`/`Demo@2026`; apaga os dados anteriores menos roles e Admin). Reescrita da v1 (Java puro + JDBC) com arquitetura em camadas.
 Nome anterior: SGI-DP. O pacote Java (`br.com.delegacia.sgidp`), a classe `SgiDpApplication` e o `artifactId` mantêm
 o nome antigo de propósito: renomear mexe em todos os arquivos e conflita com as branches abertas (fazer, se for o
 caso, depois da apresentação, com tudo mergeado, num PR único via refactor da IDE). Logo: `docs/img/logo-sisgep.jpg`.
@@ -128,6 +131,8 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
   Cadastro em `POST /procedimentos` (Delegado/Policial).
+  Arquivar (`PATCH /procedimentos/{id}/arquivar`, PR #25 do colega com correção sugerida): Delegado arquiva
+  qualquer procedimento; Policial só o que detém (sem distinção de Delegado titular no MVP).
   Arquivar exige que não haja repasse PENDENTE nem oitiva AGENDADA (400 listando as datas: "conclua as já
   realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
   procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
@@ -304,6 +309,11 @@ e banco (porta 5432 não publicada), `restart: unless-stopped`, volumes de dados
 - Gestão patrimonial da delegacia: bens com número de tombamento, categoria, setor/localização, servidor
   responsável, movimentações com histórico e baixa (armamento merece análise própria: cautela).
 - Anexo do PDF do ofício ao registro.
+- Centralizar a custódia e a organização interna da delegacia: ofícios, **custódia de objetos apreendidos**
+  (lacre, localização, histórico, no padrão dos veículos), patrimônio e veículos num só sistema.
+- Importação do acervo (procedimentos e veículos) para a carga completa estar no banco e o relatório sair com um clique.
+- Distinção do Delegado titular (unidades com mais de um delegado; nas municipais há um só).
+- Busca de pessoas sem diferenciar acentos (`unaccent` do PostgreSQL): hoje `?nome=joao` não acha "João".
 - Assistente virtual com IA em produção: provedor sem retenção dos dados ou modelo local (LGPD, sigilo).
 - Módulo de vínculos (colega, em desenvolvimento): grafo ligando pessoas, procedimentos, veículos e oitivas. A tela
   pede entidade `Pessoa` (nome, CPF, nascimento) ligada ao procedimento com o papel; `OitivaParte.nomeParte` deveria
