@@ -27,121 +27,403 @@ public record ContextoProcedimentoDto(
         return new ContextoProcedimentoDto(procedimento, historicoStatusProcedimento, historicoRepasses, historOitivas, listaVeiculos, historicoSituacaoVeiculo);
     }
 
-    public String formatarParaIA() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== DADOS DO PROCEDIMENTO ===\n");
-        sb.append("ID: ").append(procedimento.id()).append("\n");
-        sb.append("Tipo: ").append(procedimento.tipoProcedimento()).append("\n");
-        sb.append("Número: ").append(procedimento.numeroProcedimento()).append("/").append(procedimento.anoProcedimento()).append("\n");
-        sb.append("Crime: ").append(procedimento.crime()).append("\n");
-        sb.append("Status Atual: ").append(procedimento.statusProcedimento()).append("\n");
-        sb.append("Data de Abertura: ").append(procedimento.dataAbertura()).append("\n");
-        
-        sb.append("\n=== HISTÓRICO DE STATUS ===\n");
-        if (historicoStatusProcedimento != null && !historicoStatusProcedimento.isEmpty()) {
-            for (HistoricoStatusProcedimento h : historicoStatusProcedimento) {
-                // statusAnterior é nulo apenas na primeira transição, registrada no cadastro do procedimento
-                sb.append("Status Anterior: ").append(
-                        h.getStatusAnterior() != null ? h.getStatusAnterior() : "Nenhum (cadastro inicial)")
-                  .append("\nNovo status: ").append(h.getStatusNovo())
-                  .append("\nData: ").append(h.getDataTransicao())
-                  .append("\nResponsável: ").append(h.getResponsavel().getNome())
-                  .append("\nMotivo: ").append(h.getMotivo())
-                  .append("\n\n");
-            }
-        } else {
-            sb.append("Nenhum histórico registrado.\n");
-        }
+    
+	public String formatarParaIA() {
+		StringBuilder sb = new StringBuilder();
 
-        sb.append("\n=== HISTÓRICO DE REPASSES ===\n");
-        if (historicoRepasses != null && !historicoRepasses.isEmpty()) {
-            for (Repasse repasse : historicoRepasses) {
-                sb.append("Status do repasse: ").append(repasse.getStatusRepasse());
-                sb.append("\nData de solicitação: ").append(repasse.getDataSolicitacao());
-                sb.append("\nSolicitante: ").append(repasse.getSolicitante().getNome());
-                sb.append("\nDestinatário: ").append(repasse.getDestinatario().getNome());
-                // dataResposta é nula enquanto o repasse estiver PENDENTE
-                sb.append("\nData de resposta: ").append(
-                        repasse.getDataResposta() != null ? repasse.getDataResposta() : "Aguardando resposta");
-                // justificativaRecusa só existe quando o repasse foi RECUSADO
-                sb.append("\nJustificativa de recusa: ").append(
-                        repasse.getJustificativaRecusa() != null ? repasse.getJustificativaRecusa() : "Não se aplica");
-                sb.append("\n\n");
-            } 
-        } else {
-            sb.append("Nenhum histórico registrado.\n");
-        }
+		// ==================== DADOS DO PROCEDIMENTO ====================
+		adicionarTitulo(sb, "DADOS DO PROCEDIMENTO");
 
-        sb.append("\n=== HISTÓRICO DE OITIVAS ===\n");
-        if (historicoOitivas != null && !historicoOitivas.isEmpty()) {
-            for (Oitiva oitiva : historicoOitivas) {
-                int contador = 1;
-                sb.append("Data de cadastro: ").append(oitiva.getDataCadastro());
-                sb.append("\nUsuário que cadastrou: ").append(oitiva.getCadastradoPor().getNome());
-                sb.append("\nResponsável: ").append(oitiva.getResponsavel().getNome());
-                sb.append("\nData e Hora: ").append(oitiva.getDataHora());
-                sb.append("\nStatus: ").append(oitiva.getStatusOitiva());
-                // alteradoPor é nulo até a primeira edição/remarcação/desmarcação/conclusão da oitiva
-                sb.append("\nÚltima alteração por: ").append(
-                        oitiva.getAlteradoPor() != null ? oitiva.getAlteradoPor().getNome() : "Nenhuma alteração registrada");
-                // motivoCancelamento só é preenchido quando a oitiva é DESMARCADA
-                sb.append("\nMotivo de cancelamento: ").append(
-                        oitiva.getMotivoCancelamento() != null ? oitiva.getMotivoCancelamento() : "Não se aplica");
-                for (OitivaParte oitivaParte : oitiva.getPartes()) {
-                    sb.append("\n== Oitiva parte número " + contador + " ==\n");
-                    sb.append("\nTipo de parte: ").append(oitivaParte.getTipoParte());
-                    sb.append("\nNome da parte").append(oitivaParte.getNomeParte());
-                    contador++;
-                }
-            }
-            
-        } else {
-            sb.append("Nenhum histórico registrado.\n");
-        }
+		adicionarCampo(sb, "ID", procedimento.id());
+		adicionarCampo(sb, "Tipo", procedimento.tipoProcedimento());
+		adicionarCampo(
+				sb,
+				"Número",
+				procedimento.numeroProcedimento() + "/" + procedimento.anoProcedimento()
+		);
+		adicionarCampo(sb, "Crime", procedimento.crime());
+		adicionarCampo(sb, "Status atual", procedimento.statusProcedimento());
+		adicionarCampo(sb, "Data de abertura", procedimento.dataAbertura());
 
-        sb.append("\n=== LISTA DE VEÍCULOS ===\n");
-        if (listaVeiculos != null && !listaVeiculos.isEmpty()) {
-            for(Veiculo veiculo : listaVeiculos) {
-				sb.append("Id do veículo: ").append(veiculo.getId());
-                sb.append("\nTipo do veículo: ").append(veiculo.getTipoVeiculo());
-                sb.append("\nModelo do veículo: ").append(veiculo.getModelo());
-                sb.append("\nMarca do veículo: ").append(veiculo.getMarca());
-                // placa, chassi e motor são opcionais (veículo pode estar sem placa ou com identificação adulterada)
-                sb.append("\nPlaca: ").append(
-                        veiculo.getPlaca() != null ? veiculo.getPlaca() : "Não informada");
-                sb.append("\nChassi: ").append(
-                        veiculo.getChassi() != null ? veiculo.getChassi() : "Não informado");
-                sb.append("\nMotor: ").append(
-                        veiculo.getMotor() != null ? veiculo.getMotor() : "Não informado");
-                sb.append("\nCaracterísticas visuais: ").append(
-                        veiculo.getCaracteristicasVisuais() != null ? veiculo.getCaracteristicasVisuais() : "Não informadas");
-                sb.append("\nCor do veículo: ").append(veiculo.getCor());
-                sb.append("\nStatus da perícia: ").append(veiculo.getStatusPericia());
-                sb.append("\nSituação do veículo: ").append(veiculo.getSituacaoVeiculo());
-                sb.append("\nObservações: ").append(
-                        veiculo.getObservacoes() != null ? veiculo.getObservacoes() : "Nenhuma");
 
-            }
-            
-        } else {
-            sb.append("Nenhum veículo registrado.\n");
-        }
+		// ==================== HISTÓRICO DE STATUS ====================
+		adicionarTitulo(sb, "HISTÓRICO DE STATUS");
 
-        sb.append("\n=== HISTÓRICO DA SITUAÇÃO DOS VEÍCULOS ===\n");
-        if (historicoSituacaoVeiculo != null && !historicoSituacaoVeiculo.isEmpty()) {
-            for(HistoricoSituacaoVeiculo veiculo : historicoSituacaoVeiculo) {
-				sb.append("Id do veículo: ").append(veiculo.getVeiculo().getId());
-                sb.append("\nData de transição: ").append(veiculo.getDataTransicao());
-                sb.append("\nresponsável: ").append(veiculo.getResponsavel().getNome());
-                // situacaoAnterior é nula apenas no primeiro registro (cadastro do veículo)
-                sb.append("\nSituação anterior: ").append(
-                        veiculo.getSituacaoAnterior() != null ? veiculo.getSituacaoAnterior() : "Nenhuma (cadastro inicial)");
-                sb.append("\nNova situação: ").append(veiculo.getSituacaoNova());
-                sb.append("\nMotivo: ").append(veiculo.getMotivo());
-            }
-        } else {
-            sb.append("Nenhum histórico registrado.\n");
-        }
-        
-        return sb.toString();
-    }}
+		if (historicoStatusProcedimento != null
+				&& !historicoStatusProcedimento.isEmpty()) {
+
+			for (int i = 0; i < historicoStatusProcedimento.size(); i++) {
+				HistoricoStatusProcedimento historico =
+						historicoStatusProcedimento.get(i);
+
+				if (i > 0) {
+					sb.append("\n");
+				}
+
+				sb.append("REGISTRO Nº ").append(i + 1).append("\n");
+
+				adicionarCampo(
+						sb,
+						"Status anterior",
+						historico.getStatusAnterior() != null
+								? historico.getStatusAnterior()
+								: "Nenhum (cadastro inicial)"
+				);
+
+				adicionarCampo(sb, "Novo status", historico.getStatusNovo());
+				adicionarCampo(sb, "Data", historico.getDataTransicao());
+				adicionarCampo(
+						sb,
+						"Responsável",
+						historico.getResponsavel() != null
+								? historico.getResponsavel().getNome()
+								: "Não informado"
+				);
+				adicionarCampo(sb, "Motivo", historico.getMotivo());
+			}
+		} else {
+			sb.append("Nenhum histórico registrado.\n");
+		}
+
+
+		// ==================== HISTÓRICO DE REPASSES ====================
+		adicionarTitulo(sb, "HISTÓRICO DE REPASSES");
+
+		if (historicoRepasses != null && !historicoRepasses.isEmpty()) {
+
+			for (int i = 0; i < historicoRepasses.size(); i++) {
+				Repasse repasse = historicoRepasses.get(i);
+
+				if (i > 0) {
+					sb.append("\n");
+				}
+
+				sb.append("REPASSE Nº ").append(i + 1).append("\n");
+
+				adicionarCampo(
+						sb,
+						"Status do repasse",
+						repasse.getStatusRepasse()
+				);
+
+				adicionarCampo(
+						sb,
+						"Data de solicitação",
+						repasse.getDataSolicitacao()
+				);
+
+				adicionarCampo(
+						sb,
+						"Solicitante",
+						repasse.getSolicitante() != null
+								? repasse.getSolicitante().getNome()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Destinatário",
+						repasse.getDestinatario() != null
+								? repasse.getDestinatario().getNome()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Data de resposta",
+						repasse.getDataResposta() != null
+								? repasse.getDataResposta()
+								: "Aguardando resposta"
+				);
+
+				adicionarCampo(
+						sb,
+						"Justificativa de recusa",
+						repasse.getJustificativaRecusa() != null
+								&& !repasse.getJustificativaRecusa().isBlank()
+								? repasse.getJustificativaRecusa()
+								: "Não se aplica"
+				);
+			}
+		} else {
+			sb.append("Nenhum repasse registrado.\n");
+		}
+
+
+		// ==================== HISTÓRICO DE OITIVAS ====================
+		adicionarTitulo(sb, "HISTÓRICO DE OITIVAS");
+
+		if (historicoOitivas != null && !historicoOitivas.isEmpty()) {
+
+			for (int i = 0; i < historicoOitivas.size(); i++) {
+				Oitiva oitiva = historicoOitivas.get(i);
+
+				if (i > 0) {
+					sb.append("\n");
+				}
+
+				// Numeração sequencial das oitivas.
+				sb.append("OITIVA Nº ").append(i + 1).append("\n");
+
+				adicionarCampo(
+						sb,
+						"Data de cadastro",
+						oitiva.getDataCadastro()
+				);
+
+				adicionarCampo(
+						sb,
+						"Usuário que cadastrou",
+						oitiva.getCadastradoPor() != null
+								? oitiva.getCadastradoPor().getNome()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Responsável",
+						oitiva.getResponsavel() != null
+								? oitiva.getResponsavel().getNome()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Data e hora",
+						oitiva.getDataHora()
+				);
+
+				adicionarCampo(
+						sb,
+						"Status",
+						oitiva.getStatusOitiva()
+				);
+
+				adicionarCampo(
+						sb,
+						"Última alteração por",
+						oitiva.getAlteradoPor() != null
+								? oitiva.getAlteradoPor().getNome()
+								: "Nenhuma alteração registrada"
+				);
+
+				adicionarCampo(
+						sb,
+						"Motivo de cancelamento",
+						oitiva.getMotivoCancelamento() != null
+								&& !oitiva.getMotivoCancelamento().isBlank()
+								? oitiva.getMotivoCancelamento()
+								: "Não se aplica"
+				);
+
+				// Partes associadas à oitiva atual.
+				List<OitivaParte> partes = oitiva.getPartes();
+
+				if (partes != null && !partes.isEmpty()) {
+					for (int j = 0; j < partes.size(); j++) {
+						OitivaParte parte = partes.get(j);
+
+						sb.append("  PARTE Nº ")
+								.append(j + 1)
+								.append("\n");
+
+						adicionarCampo(
+								sb,
+								"  Tipo de parte",
+								parte.getTipoParte()
+						);
+
+						adicionarCampo(
+								sb,
+								"  Nome da parte",
+								parte.getNomeParte()
+						);
+					}
+				} else {
+					sb.append("Nenhuma parte registrada.\n");
+				}
+			}
+		} else {
+			sb.append("Nenhuma oitiva registrada.\n");
+		}
+
+
+		// ==================== LISTA DE VEÍCULOS ====================
+		adicionarTitulo(sb, "LISTA DE VEÍCULOS");
+
+		if (listaVeiculos != null && !listaVeiculos.isEmpty()) {
+
+			for (int i = 0; i < listaVeiculos.size(); i++) {
+				Veiculo veiculo = listaVeiculos.get(i);
+
+				if (i > 0) {
+					sb.append("\n");
+				}
+
+				sb.append("VEÍCULO Nº ").append(i + 1).append("\n");
+
+				adicionarCampo(sb, "ID do veículo", veiculo.getId());
+				adicionarCampo(sb, "Tipo do veículo", veiculo.getTipoVeiculo());
+				adicionarCampo(sb, "Modelo do veículo", veiculo.getModelo());
+				adicionarCampo(sb, "Marca do veículo", veiculo.getMarca());
+
+				adicionarCampo(
+						sb,
+						"Placa",
+						veiculo.getPlaca() != null
+								? veiculo.getPlaca()
+								: "Não informada"
+				);
+
+				adicionarCampo(
+						sb,
+						"Chassi",
+						veiculo.getChassi() != null
+								? veiculo.getChassi()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Motor",
+						veiculo.getMotor() != null
+								? veiculo.getMotor()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Características visuais",
+						veiculo.getCaracteristicasVisuais() != null
+								? veiculo.getCaracteristicasVisuais()
+								: "Não informadas"
+				);
+
+				adicionarCampo(
+						sb,
+						"Cor do veículo",
+						veiculo.getCor()
+				);
+
+				adicionarCampo(
+						sb,
+						"Status da perícia",
+						veiculo.getStatusPericia()
+				);
+
+				adicionarCampo(
+						sb,
+						"Situação do veículo",
+						veiculo.getSituacaoVeiculo()
+				);
+
+				adicionarCampo(
+						sb,
+						"Observações",
+						veiculo.getObservacoes() != null
+								? veiculo.getObservacoes()
+								: "Nenhuma"
+				);
+			}
+		} else {
+			sb.append("Nenhum veículo registrado.\n");
+		}
+
+
+		// ==================== HISTÓRICO DA SITUAÇÃO DOS VEÍCULOS ====================
+		adicionarTitulo(sb, "HISTÓRICO DA SITUAÇÃO DOS VEÍCULOS");
+
+		if (historicoSituacaoVeiculo != null
+				&& !historicoSituacaoVeiculo.isEmpty()) {
+
+			for (int i = 0; i < historicoSituacaoVeiculo.size(); i++) {
+				HistoricoSituacaoVeiculo historico =
+						historicoSituacaoVeiculo.get(i);
+
+				if (i > 0) {
+					sb.append("\n");
+				}
+
+				sb.append("TRANSIÇÃO Nº ").append(i + 1).append("\n");
+
+				adicionarCampo(
+						sb,
+						"ID do veículo",
+						historico.getVeiculo() != null
+								? historico.getVeiculo().getId()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Data de transição",
+						historico.getDataTransicao()
+				);
+
+				adicionarCampo(
+						sb,
+						"Responsável",
+						historico.getResponsavel() != null
+								? historico.getResponsavel().getNome()
+								: "Não informado"
+				);
+
+				adicionarCampo(
+						sb,
+						"Situação anterior",
+						historico.getSituacaoAnterior() != null
+								? historico.getSituacaoAnterior()
+								: "Nenhuma (cadastro inicial)"
+				);
+
+				adicionarCampo(
+						sb,
+						"Nova situação",
+						historico.getSituacaoNova()
+				);
+
+				adicionarCampo(
+						sb,
+						"Motivo",
+						historico.getMotivo()
+				);
+			}
+		} else {
+			sb.append("Nenhum histórico registrado.\n");
+		}
+
+		return sb.toString();
+	}
+
+
+	/**
+	 * Adiciona o título de uma seção, mantendo uma linha vazia
+	 * entre as seções.
+	 */
+	private static void adicionarTitulo(StringBuilder sb, String titulo) {
+		if (sb.length() > 0) {
+			sb.append("\n");
+		}
+
+		sb.append("=== ")
+				.append(titulo)
+				.append(" ===\n");
+	}
+
+
+	/**
+	 * Adiciona um campo por linha.
+	 * Se o valor for nulo, utiliza uma indicação padrão.
+	 */
+	private static void adicionarCampo(
+			StringBuilder sb,
+			String nome,
+			Object valor
+	) {
+		sb.append(nome)
+				.append(": ")
+				.append(valor != null ? valor : "Não informado")
+				.append("\n");
+	}
+
+ }

@@ -65,13 +65,27 @@ public class ResumoProcedimentoService {
                                 - Não trate alegações como fatos comprovados.
                                 - Não conclua culpa ou responsabilidade.
                                 - Escreva em português, com clareza e objetividade.
+                                - Escreva o resumo em linguagem natural, conectando os eventos com coesão e coerência.
+                                - Escreva como se estivesse explicando o procedimento para outra pessoa de forma natural numa conversa. 
+                                
+                                Regras adicionais:
+                                - Diferencie eventos registrados, alegações, suspeitas e conclusões periciais.
+                                - Não infira alterações de titularidade a partir de um repasse sem confirmação explícita.
+                                - Preserve o significado dos status e das datas presentes no contexto.
+                                - Diferencie oitivas realizadas, agendadas, canceladas e desmarcadas.
+                                - Identifique diligências pendentes quando houver dados que as sustentem.
+                                - Não afirme que uma diligência foi concluída apenas porque ela foi mencionada.
+                                - Se houver informações contraditórias ou insuficientes, explicite a limitação.
+                                - Não invente relações causais entre eventos que apenas ocorreram em sequência.
+                                - Não apresente o resumo como substituto dos registros oficiais.
                                 """)
                 .user(user -> user.text("""
                                 Elabore um resumo do procedimento com base exclusivamente no contexto abaixo.
                                 <contexto>
                                 {contexto}
                                 </contexto>
-                                """))
+                                """)
+                        .param("contexto", contexto))
                 .call()
                 .content();
     }
