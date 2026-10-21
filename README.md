@@ -5,8 +5,8 @@
 <h1 align="center">SISGEP: Sistema Interno de Gestão Policial</h1>
 
 <p align="center">
-  API REST para o controle interno de uma delegacia: posse e repasse de procedimentos, oitivas,
-  veículos apreendidos e pessoas envolvidas, com rastreabilidade de tudo o que acontece.
+  API REST para a gestão e o controle interno de delegacias policiais, com a rastreabilidade da posse e do repasse
+  de procedimentos, das oitivas e dos veículos apreendidos.
 </p>
 
 <p align="center">
@@ -16,15 +16,36 @@
 
 ---
 
+## Sobre o projeto
+
+Desenvolvimento de uma API REST voltada à gestão e ao controle interno de delegacias policiais, contemplando o
+registro, o acompanhamento e a rastreabilidade da posse e do repasse de procedimentos entre policiais, das oitivas e
+dos veículos apreendidos. A solução permite registrar o histórico das movimentações, identificando responsabilidades
+e garantindo maior segurança, organização e transparência na gestão das informações.
+
+O projeto é estruturado de forma escalável, possibilitando sua evolução para um sistema integrado de gestão
+administrativa policial, com a futura implementação de módulos para emissão e controle de ofícios, gestão da cadeia
+de custódia de objetos apreendidos e administração de bens patrimoniais vinculados a cada delegacia, centralizando
+informações e reduzindo a dependência de controles manuais, planilhas e registros físicos.
+
 ## O problema
 
-Na rotina cartorária de uma delegacia, boa parte do controle interno ainda é feita em **livros, planilhas e papel**:
-quem está com cada procedimento, quando a oitiva foi marcada, onde está o veículo apreendido, o que foi remetido.
-Isso gera perda de rastreabilidade, retrabalho e dificuldade na conferência da carga da unidade.
+Na rotina cartorária de uma delegacia, **todo o controle interno ainda é feito em livros, planilhas e papel**. Não
+existe hoje um sistema para isso: quem está com cada procedimento, a quem ele foi repassado, quando cada oitiva foi
+marcada, onde está cada veículo apreendido e o que compõe a carga da unidade são anotados à mão.
 
-O SISGEP reúne esse controle num só sistema, com histórico de cada mudança e acesso por perfil.
-O controle de **prazos processuais** continua no sistema institucional da Polícia Civil: o SISGEP é o controle
-interno da delegacia.
+Isso gera perda de rastreabilidade, retrabalho e dificuldade na conferência da carga da unidade, e dificulta que a
+Polícia Civil cumpra a sua atividade-fim, a investigação criminal e o atendimento ao público, porque grande parte do
+tempo é gasta com uma gestão ineficiente da custódia e do cartório.
+
+## A inovação
+
+O SISGEP **não substitui um sistema existente: ele sistematiza pela primeira vez** um controle que hoje não tem
+nenhuma ferramenta. Posse, repasse, oitivas, veículos e carga passam a ter registro único, histórico de cada
+movimentação e responsável identificado, com acesso por perfil.
+
+O controle de **prazos processuais** continua no sistema institucional da Polícia Civil, que já o realiza: o SISGEP
+cobre o que ficava de fora, o controle interno da delegacia.
 
 ## Funcionalidades
 
