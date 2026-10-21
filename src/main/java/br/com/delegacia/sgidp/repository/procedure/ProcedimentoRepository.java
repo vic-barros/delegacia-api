@@ -34,4 +34,9 @@ public interface ProcedimentoRepository
     List<Procedimento> buscarParaExportacao(LocalDate dataInicio, LocalDate dataFim,
                                             TipoProcedimento tipo,
                                             StatusProcedimento status);
+
+    // Minha mesa (RF38): procedimentos em andamento sob a posse do usuário logado
+    List<Procedimento> findByDetentorAtualLoginAndStatusProcedimentoOrderByDataAberturaAsc(
+            String login, StatusProcedimento status
+    );
 }
