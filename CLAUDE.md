@@ -82,7 +82,7 @@ caso, depois da apresentação, com tudo mergeado, num PR único via refactor da
 
 ## Modelo de domínio
 
-As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos Java reais; colunas em snake_case).
+As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pessoas`) (nomes abaixo = atributos Java reais; colunas em snake_case).
 
 | Entidade | Pontos-chave |
 |---|---|
@@ -93,7 +93,8 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
 | `Repasse` | `statusRepasse` (coluna `status`, inicia PENDENTE), `justificativaRecusa` (500), `dataSolicitacao` (`@CreationTimestamp`), `dataResposta` (null até responder), FKs `procedimento`, `solicitante`, `destinatario`. CHECK `solicitante_id <> destinatario_id` via `@Table(check = @CheckConstraint)`. Métodos `aceitar()` / `recusar(justificativa)` preenchem status e `dataResposta` |
 | `HistoricoCustodia` | `dataInicio` (`@CreationTimestamp`), `dataFim` (null = custódia atual; única coluna atualizável), `origem: OrigemHistoricoCustodia`, FKs `procedimento`, `usuario`, `repasseOrigem` (`@OneToOne` LAZY, nullable). Construtor `(procedimento, usuario, origem, repasseOrigem)`; `encerrar()` preenche `dataFim` (erro se já encerrada). **Não é `@Immutable`** |
 | `Oitiva` | `dataHora` (atualizável: remarcação), `statusOitiva` (coluna `status`, inicia AGENDADA), `motivoCancelamento`, `dataCadastro` (`@CreationTimestamp`), FKs `procedimento`, `responsavel`, `cadastradoPor` (`updatable = false`), `alteradoPor` (nullable: último que editou/remarcou/desmarcou/concluiu), `partes: List<OitivaParte>` (composição). `motivoCancelamento` com 500 |
-| `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`), FK `oitiva`. Construtor `(tipoParte, nomeParte)` + construtor vazio `protected` |
+| `OitivaParte` | `tipoParte: TipoParte`, `nomeParte` (coluna `nome_parte`, retrato do nome na data da oitiva), FK `oitiva`, FK `pessoa` (opcional, `fk_oitiva_parte_pessoa`). Construtores `(tipoParte, nomeParte)` e `(tipoParte, nomeParte, pessoa)` + vazio `protected`. `OitivaParteRepository` só para consulta (`buscarParticipacoes`) |
+| `Pessoa` | pacote `party`. `nome` (150), `dataNascimento`, `cpf` (11 dígitos, UNIQUE `unique_cpf`, nullable), `alcunha` (100), `telefone` (20), `endereco` (300, texto livre), `dataCadastro`, FK `cadastradoPor` (`updatable = false`). LGPD: só esses dados; CPF mascarado na resposta |
 | `Notificacao` | `tipoNotificacao` (coluna `tipo`), `mensagem`, `lida: Boolean` (inicia `false`), `dataCriacao` (`@CreationTimestamp`), `referenciaId` (Long, sem FK: id do registro de origem, tabela definida pelo tipo), FK `usuarioDestinatario`. Índice `(usuario_destinatario_id, lida)` |
 | `Veiculo` | `tipoVeiculo`, `lacre` (UK, `length = 15`, `updatable = false`, sem setter; `definirLacre()`), `marca`, `modelo`, `cor`, `placa`/`chassi`/`motor` (nullable), `caracteristicasVisuais`/`observacoes` (`TEXT`), `statusPericia: StatusPericia` (coluna `pericia`), `situacaoVeiculo` (coluna `situacao`, inicia `NA_DEPOL`), FK `procedimento`. **Sem `localizacaoPatio`** (a situação já indica onde o veículo está) |
 | `HistoricoSituacaoVeiculo` | `@Immutable`. `situacaoAnterior` (nullable), `situacaoNova`, `motivo` (500), `dataTransicao`, FKs `veiculo`, `responsavel` |
@@ -189,7 +190,8 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   procedimento, data de entrada (primeira linha do histórico) e data/hora da impressão; sem nomes de pessoas.
   Qualquer logado pode gerar (regra de GET de `/veiculos/**`). Acentos no `.env` em `\uXXXX` (o arquivo é lido
   como `.properties`).
-- **Situação do veículo**: começa em NA_DEPOL. Transições **não são bloqueadas** por decisão de projeto
+- **Situação do veículo**: começa em NA_DEPOL. EM_PATIO = em pátio, que pode ser de outro órgão ou de uso da
+  delegacia (ex.: pátio da prefeitura); por isso a carga continua NA_DEPOL + EM_PATIO e quem quiser só a DEPOL filtra. Transições **não são bloqueadas** por decisão de projeto
   (DEVOLVIDO/DESCARTADO normalmente são finais, mas a reversão é permitida com confirmação).
   Toda mudança exige motivo e gera `HistoricoSituacaoVeiculo`; o cadastro também gera (anterior `null` → NA_DEPOL).
   Nova situação igual à atual é rejeitada.
@@ -232,15 +234,25 @@ As 11 entidades JPA estão implementadas em `model/` (nomes abaixo = atributos J
   Estagiário: agenda/edita/remarca/desmarca/conclui oitivas e pode ser responsável por elas; só lê veículos
   (lista, ficha e etiqueta); participa de posse/repasse; não cadastra nem altera procedimentos, não arquiva nem
   registra remessa e não exporta.
-- **Painel e Minha mesa (RF37/RF38, a implementar)**: só com os dados que já existem, nada salvo.
-  `GET /painel`: oitivas de hoje, repasses pendentes (recebidos e enviados pelo usuário), veículos NA_DEPOL/EM_PATIO
-  e com perícia pendente, procedimentos parados do usuário. Minha mesa: procedimentos com detentor = usuário logado,
+- **Painel e Minha mesa (RF37/RF38, PR #24 `feature/painel-minhamesa`)**: só com os dados que já existem, nada salvo.
+  Pacote `dashboard`; rotas `GET /painel` e `GET /painel/minha-mesa` (Delegado/Policial/Estagiário).
+  `GET /painel`: oitivas de hoje do usuário (sem DESMARCADA), repasses pendentes (recebidos e enviados), card
+  "Veículos nesta delegacia" = só NA_DEPOL (`total`, `semPericia`, `periciaEmAndamento`), procedimentos parados.
+  Minha mesa só EM_ANDAMENTO; enum `ProximoPasso` (AGUARDANDO_ACEITE, OITIVA_ATRASADA, OITIVA_AGENDADA, PARADO, NENHUM)
+  + texto pronto; ordem: passo, oitiva mais próxima (`nullsLast`), movimentação mais antiga. Uma consulta por fonte
+  (GROUP BY + MAX, projeção `DataPorProcedimento`) juntada em mapas com `for`. Minha mesa: procedimentos com detentor = usuário logado,
   "na posse há N dias" (`dataInicio` da custódia aberta), próxima oitiva, repasse em andamento, contagem dos chips e
   "próximo passo" por prioridade: repasse pendente ("Aguardando aceite") → oitiva agendada ("Oitiva hoje, 16:30")
   → parado ("Parado há N dias"). Parado = sem movimentação há mais de 60 dias (última data entre custódia,
   histórico de status, oitiva cadastrada/concluída, repasse e histórico de veículo). "Repassar selecionados": o
   front chama `POST /repasses` uma vez por procedimento e mostra o resultado de cada um.
-- **Outras lacunas do design (a implementar)**: busca global `GET /busca?q=` (procedimento "IP 45/2026", placa,
+- **Pessoas (RF43, UC36, PR `feature/pessoas`)**: `POST/GET /pessoas[?nome=&cpf=]`, `GET/PUT /pessoas/{id}`,
+  `GET /pessoas/{id}/participacoes` (Delegado/Policial/Estagiário). `@CPF` (Hibernate Validator) + normalização
+  só dígitos; CPF repetido 409; construtor compacto do record transforma "" em nulo. Busca devolve
+  `PessoaResumoResponseDto` (sem telefone/endereço); ficha `PessoaResponseDto`; idade calculada. Busca por `nome`
+  também procura na alcunha. Oitiva: `pessoaId` opcional em cada parte (`criarParte` no `OitivaService`), 404 se
+  não existir. Veículos não entram nas participações (ligados ao procedimento; o grafo usa `GET /veiculos?procedimentoId=`).
+- **Outras lacunas do design (a implementar depois da apresentação)**: fotos da apreensão (front ainda não integra); busca global `GET /busca?q=` (procedimento "IP 45/2026", placa,
   lacre, ofício; resultados agrupados); fotos da apreensão (`FotoVeiculo`: arquivo em disco/volume, não no banco;
   só JPG/PNG até 5 MB conferindo o conteúdo real; envio Delegado/Policial, leitura todos; `POST/GET
   /veiculos/{id}/fotos`, `GET /veiculos/fotos/{id}`); alterar a própria senha `PATCH /usuarios/me/senha` (pede a

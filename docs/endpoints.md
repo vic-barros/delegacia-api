@@ -1124,7 +1124,8 @@ Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` e `ROLE_ESTAGIA
   "partes": [
     {
       "tipoParte": "INVESTIGADO",
-      "nomeParte": "João da Silva"
+      "nomeParte": "João da Silva",
+      "pessoaId": 1
     },
     {
       "tipoParte": "TESTEMUNHA",
@@ -1146,6 +1147,8 @@ Campos:
     - `TESTEMUNHA`
     - `VITIMA`
   - `nomeParte`: string, obrigatório, até 150 caracteres
+  - `pessoaId`: number, opcional. Id de uma pessoa já cadastrada (`GET /pessoas?nome=`); liga a parte à pessoa
+    (vínculos). Sem ele, a parte fica só com o nome, como antes. Pessoa inexistente: 404 "Pessoa não encontrada"
 - `confirmarConflito`: boolean, opcional, usado quando já existe outra oitiva do mesmo responsável no mesmo horário
 
 ### Respostas
@@ -1164,12 +1167,16 @@ Campos:
   "responsavel": "Delegado",
   "partes": [
     {
+      "id": 20,
       "tipoParte": "INVESTIGADO",
-      "nomeParte": "João da Silva"
+      "nomeParte": "João da Silva",
+      "pessoaId": 1
     },
     {
+      "id": 21,
       "tipoParte": "TESTEMUNHA",
-      "nomeParte": "Maria Souza"
+      "nomeParte": "Maria Souza",
+      "pessoaId": null
     }
   ],
   "motivoCancelamento": null,
@@ -1354,7 +1361,8 @@ Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` e `ROLE_ESTAGIA
   "partes": [
     {
       "tipoParte": "VITIMA",
-      "nomeParte": "Ana Pereira"
+      "nomeParte": "Ana Pereira",
+      "pessoaId": 3
     }
   ],
   "confirmarConflito": false
@@ -1364,7 +1372,7 @@ Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` e `ROLE_ESTAGIA
 Campos:
 
 - `responsavelId`: number, obrigatório
-- `partes`: lista obrigatória com ao menos 1 item
+- `partes`: lista obrigatória com ao menos 1 item (substitui a lista anterior; cada parte com `tipoParte`, `nomeParte` e `pessoaId` opcional, como no agendamento)
 - `confirmarConflito`: boolean, opcional
 
 ### Respostas
@@ -1523,6 +1531,241 @@ Retorna a oitiva com status `CONCLUIDA`.
 - 404 Not Found: oitiva inexistente
 - 401 Unauthorized: token inválido
 - 403 Forbidden: sem permissão
+
+---
+
+# 5.6) Pessoas
+
+Pessoas envolvidas nos procedimentos (vítima, testemunha, investigado), base do módulo de vínculos. A parte da
+oitiva pode ser ligada a uma pessoa pelo `pessoaId` (ver "Agendar oitiva"). LGPD: o CPF nunca sai completo
+(`***.982.247-**`); telefone e endereço só aparecem na ficha (`GET /pessoas/{id}`), não na busca.
+
+Autenticação de todas as rotas: requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou
+`ROLE_ESTAGIARIO` (Admin recebe 403).
+
+## Endpoint: Cadastrar pessoa
+
+### Método HTTP:
+
+POST
+
+### Rota:
+
+`/pessoas`
+
+### Descrição:
+
+Cadastra uma pessoa. O usuário logado fica registrado como quem cadastrou.
+
+### Parâmetros de Entrada
+
+#### Body (Payload)
+
+```json
+{
+  "nome": "João Santos",
+  "dataNascimento": "1990-05-10",
+  "cpf": "529.982.247-25",
+  "alcunha": "João Grande",
+  "telefone": "(79) 99999-0000",
+  "endereco": "Rua Fictícia, 10, Centro, Aracaju/SE"
+}
+```
+
+Campos:
+
+- `nome`: string, obrigatório, até 150 caracteres
+- `dataNascimento`: string `YYYY-MM-DD`, opcional, no passado
+- `cpf`: string, opcional, com ou sem pontuação; os dígitos verificadores são conferidos; único entre as pessoas
+- `alcunha`: string, opcional, até 100 caracteres (também entra na busca por nome)
+- `telefone`: string, opcional, até 20 caracteres (números, espaços, parênteses, `+` e `-`)
+- `endereco`: string, opcional, até 300 caracteres
+
+Campos opcionais enviados vazios (`""`) são gravados como nulos.
+
+### Respostas
+
+#### Sucesso (201 Created)
+
+```json
+{
+  "id": 1,
+  "nome": "João Santos",
+  "dataNascimento": "1990-05-10",
+  "idade": 36,
+  "cpf": "***.982.247-**",
+  "alcunha": "João Grande",
+  "telefone": "(79) 99999-0000",
+  "endereco": "Rua Fictícia, 10, Centro, Aracaju/SE"
+}
+```
+
+`idade` é calculada a partir da data de nascimento (nula se a data não foi informada).
+
+#### Erros comuns
+
+- 400 Bad Request: nome ausente, "CPF inválido", data de nascimento no futuro, telefone inválido
+- 409 Conflict: "Já existe uma pessoa cadastrada com este CPF"
+
+---
+
+## Endpoint: Buscar pessoas
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/pessoas`
+
+### Descrição:
+
+Busca para o autocompletar da oitiva e a tela Pessoas, em ordem alfabética. Devolve o resumo da pessoa (sem
+telefone e endereço).
+
+### Parâmetros de Entrada
+
+#### Query Parameters
+
+- `nome`: string, opcional. Parte do nome **ou da alcunha**, sem diferenciar maiúsculas (`?nome=gale` acha "Galego")
+- `cpf`: string, opcional, com ou sem pontuação (busca exata)
+
+Sem filtros, lista todas.
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+[
+  {
+    "id": 1,
+    "nome": "João Santos",
+    "alcunha": "João Grande",
+    "idade": 36,
+    "cpf": "***.982.247-**"
+  }
+]
+```
+
+---
+
+## Endpoint: Buscar pessoa por ID (ficha)
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/pessoas/{id}`
+
+### Descrição:
+
+Ficha completa da pessoa (mesmo formato da resposta do cadastro, com telefone e endereço).
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Mesmo formato da resposta de "Cadastrar pessoa".
+
+#### Erros comuns
+
+- 404 Not Found: "Pessoa não encontrada"
+
+---
+
+## Endpoint: Editar pessoa
+
+### Método HTTP:
+
+PUT
+
+### Rota:
+
+`/pessoas/{id}`
+
+### Descrição:
+
+Atualiza os dados da pessoa. **Enviar todos os campos**: o que vier nulo ou vazio fica nulo (o PUT substitui o
+cadastro). A própria pessoa pode manter o CPF dela.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+#### Body (Payload)
+
+Mesmo formato e regras de "Cadastrar pessoa".
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Mesmo formato da resposta de "Cadastrar pessoa".
+
+#### Erros comuns
+
+- 400 Bad Request: mesmas validações do cadastro
+- 404 Not Found: "Pessoa não encontrada"
+- 409 Conflict: "Já existe uma pessoa cadastrada com este CPF" (CPF de outra pessoa)
+
+---
+
+## Endpoint: Participações da pessoa (ligações)
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/pessoas/{id}/participacoes`
+
+### Descrição:
+
+Em quais procedimentos e oitivas a pessoa aparece, com o papel. Alimenta o quadro "Ligações" e o primeiro nível
+do grafo de vínculos. Os veículos não vêm aqui: eles estão ligados ao procedimento, então o próximo nível do grafo
+usa `GET /veiculos?procedimentoId={procedimentoId}`. Ordem: oitiva mais recente primeiro (o mesmo procedimento
+pode aparecer mais de uma vez, uma por oitiva).
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+[
+  {
+    "procedimentoId": 1,
+    "procedimento": "IP 45/2026",
+    "crime": "Roubo majorado",
+    "tipoParte": "TESTEMUNHA",
+    "oitivaId": 1,
+    "dataHoraOitiva": "2026-10-23T09:00:00",
+    "statusOitiva": "AGENDADA"
+  }
+]
+```
+
+#### Erros comuns
+
+- 404 Not Found: "Pessoa não encontrada"
 
 ---
 

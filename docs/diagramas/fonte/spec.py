@@ -12,7 +12,7 @@ DER={
 'usuario':('usuario',[P('PK id: bigint'),N('nome: varchar'),N('matricula: varchar (UNIQUE)'),N('login: varchar (UNIQUE)'),N('senha_hash: varchar'),N('status: varchar'),I('(PENDENTE, APROVADO, REJEITADO, DESATIVADO)'),F('FK role_id: bigint')],'mint'),
 'role':('role',[P('PK id: bigint'),N('acesso: varchar (UNIQUE)'),I('ex.: ROLE_ADMIN, ROLE_DELEGADO,'),I('ROLE_POLICIAL, ROLE_ESTAGIARIO'),N('descricao: varchar')],'pink'),
 'oitiva':('oitiva',[P('PK id: bigint'),N('data_hora: timestamp'),N('status: varchar'),I('(AGENDADA, CONCLUIDA, DESMARCADA)'),N('motivo_cancelamento: varchar(500)'),N('data_cadastro: timestamp'),F('FK procedimento_id: bigint'),F('FK responsavel_id: bigint'),F('FK cadastrado_por_id: bigint'),F('FK alterado_por_id: bigint (nullable)')],'mint'),
-'oitiva_parte':('oitiva_parte',[P('PK id: bigint'),N('tipo_parte: varchar'),I('(INVESTIGADO, TESTEMUNHA, VITIMA)'),N('nome_parte: varchar'),F('FK oitiva_id: bigint')],'mint'),
+'oitiva_parte':('oitiva_parte',[P('PK id: bigint'),N('tipo_parte: varchar'),I('(INVESTIGADO, TESTEMUNHA, VITIMA)'),N('nome_parte: varchar'),F('FK oitiva_id: bigint'),F('FK pessoa_id: bigint (null)')],'mint'),
 'repasse':('repasse',[P('PK id: bigint'),N('status: varchar'),I('(PENDENTE, ACEITO, RECUSADO)'),N('justificativa_recusa: varchar'),N('data_solicitacao: timestamp'),N('data_resposta: timestamp'),F('FK procedimento_id: bigint'),F('FK solicitante_id: bigint'),F('FK destinatario_id: bigint'),I('CHECK (solicitante_id <> destinatario_id)')],'salmon'),
 'hc':('historico_custodia',[P('PK id: bigint'),N('data_inicio: timestamp'),N('data_fim: timestamp (null)'),N('origem: varchar (enum OrigemHistoricoCustodia)'),I('(CADASTRO_INICIAL, REPASSE)'),F('FK procedimento_id: bigint'),F('FK usuario_id: bigint'),F('FK repasse_origem_id: bigint (null)')],'salmon'),
 'hsp':('historico_status_procedimento',[P('PK id: bigint'),N('status_anterior: varchar'),N('status_novo: varchar'),N('motivo: varchar'),N('data_transicao: timestamp'),F('FK procedimento_id: bigint'),F('FK responsavel_id: bigint')],'lav'),
@@ -20,6 +20,7 @@ DER={
 'veiculo':('veiculo',[P('PK id: bigint'),N('tipo_veiculo: varchar'),N('lacre: varchar (UNIQUE)'),I('gerado: LAC-AAAA-NNNNNN'),I('(sequence seq_lacre_veiculo)'),N('marca: varchar'),N('modelo: varchar'),N('cor: varchar'),N('placa: varchar (null)'),N('chassi: varchar (null)'),N('motor: varchar (null)'),N('caracteristicas_visuais: text'),N('pericia: varchar (enum StatusPericia)'),N('situacao: varchar (enum SituacaoVeiculo)'),I("DEFAULT 'NA_DEPOL'"),N('observacoes: text'),F('FK procedimento_id: bigint')],'green'),
 'hsv':('historico_situacao_veiculo',[P('PK id: bigint'),N('situacao_anterior: varchar'),N('situacao_nova: varchar'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: varchar'),N('data_transicao: timestamp'),F('FK veiculo_id: bigint'),F('FK responsavel_id: bigint')],'cyan'),
 'oficio':('oficio',[P('PK id: bigint'),N('numero: integer'),N('ano: integer'),I('numero reinicia a cada ano'),N('data_expedicao: date'),N('orgao_destinatario: varchar'),N('assunto: varchar(500)'),N('referencia: varchar (null)'),N('status: varchar'),I('(EXPEDIDO, CANCELADO)'),N('motivo_cancelamento: varchar(500) (null)'),N('data_cadastro: timestamp'),N('data_cancelamento: timestamp (null)'),F('FK procedimento_id: bigint (null)'),F('FK cadastrado_por_id: bigint'),F('FK alterado_por_id: bigint (null)'),F('FK cancelado_por_id: bigint (null)'),I('UNIQUE (numero, ano)')],'cyan'),
+'pessoa':('pessoa',[P('PK id: bigint'),N('nome: varchar(150)'),N('data_nascimento: date (null)'),N('cpf: varchar(11) (UNIQUE, null)'),I('so digitos; mascarado na API'),N('alcunha: varchar(100) (null)'),N('telefone: varchar(20) (null)'),N('endereco: varchar(300) (null)'),N('data_cadastro: timestamp'),F('FK cadastrado_por_id: bigint (usuario)')],'mint'),
 'numof':('numeracao_oficio',[P('PK ano: integer'),N('ultimo_numero: integer'),I('linha do ano travada ao gerar'),I('o proximo numero (FOR UPDATE)')],'beige'),
 }
 CLS={
@@ -35,15 +36,17 @@ CLS={
 'veiculo':('Veiculo',[N('id: Long'),N('tipoVeiculo: String'),N('lacre: String'),I('definirLacre(lacre)'),N('marca: String'),N('modelo: String'),N('cor: String'),N('placa: String'),N('chassi: String'),N('motor: String'),N('caracteristicasVisuais: String'),N('statusPericia: StatusPericia'),I('(SEM_PERICIA, PERICIA_EM_ANDAMENTO,'),I(' PERICIA_CONCLUIDA, NAO_PRECISA_PERICIA)'),N('situacaoVeiculo: SituacaoVeiculo'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('observacoes: String')],'green'),
 'hsv':('HistoricoSituacaoVeiculo',[N('id: Long'),N('situacaoAnterior: SituacaoVeiculo'),N('situacaoNova: SituacaoVeiculo'),I('(NA_DEPOL, EM_PATIO,'),I(' DEVOLVIDO, DESCARTADO)'),N('motivo: String'),N('dataTransicao: LocalDateTime'),I('@Immutable')],'cyan'),
 'oficio':('Oficio',[N('id: Long'),N('numero: Integer'),N('ano: Integer'),N('dataExpedicao: LocalDate'),N('orgaoDestinatario: String'),N('assunto: String'),N('referencia: String'),N('statusOficio: StatusOficio'),I('(EXPEDIDO, CANCELADO)'),N('motivoCancelamento: String'),N('dataCadastro: LocalDateTime'),N('dataCancelamento: LocalDateTime'),I('alteradoPor, canceladoPor: Usuario'),I('cancelar(motivo, usuario)')],'cyan'),
+'pessoa':('Pessoa',[N('id: Long'),N('nome: String'),N('dataNascimento: LocalDate'),N('cpf: String'),I('mascarado na resposta da API'),N('alcunha: String'),N('telefone: String'),N('endereco: String'),N('dataCadastro: LocalDateTime'),I('cadastradoPor: Usuario')],'mint'),
 'numof':('NumeracaoOficio',[N('ano: Integer (id)'),N('ultimoNumero: Integer'),I('proximoNumero()'),I('@Lock(PESSIMISTIC_WRITE) no repository')],'beige'),
 }
 def layout(T):
     h=lambda k:HEAD+2*PAD+len(T[k][1])*LH
     Y3=Y2+max(h(k) for k in ['oitiva','repasse','hc','hsp','notif'])+70
+    Y4=Y3+h('oitiva_parte')+80
     return {'procedimento':(240,Y1,460),'usuario':(960,Y1,440),'role':(1580,Y1,380),
      'oitiva':(XS[0],Y2,COLW),'repasse':(XS[1],Y2,COLW),'hc':(XS[2],Y2,COLW),'hsp':(XS[3],Y2,COLW),'notif':(XS[4],Y2,COLW),
      'oitiva_parte':(XS[0],Y3,COLW),'veiculo':(XS[1],Y3,COLW),'hsv':(XS[2],Y3,COLW),
-     'oficio':(XS[3],Y3,COLW),'numof':(XS[4],Y3,COLW)}
+     'oficio':(XS[3],Y3,COLW),'numof':(XS[4],Y3,COLW),'pessoa':(XS[0],Y4,COLW)}
 def rep_hc(c,label):
     def f(B,ln,tx):
         A,Bb=B['repasse'],B['hc']; y=A['y']+150; x1,x2=A['x']+A['w'],Bb['x']
@@ -55,6 +58,7 @@ def edges(one,many,L):
      horiz('procedimento','usuario',70,many,one,L['detentor']),
      horiz('role','usuario',70,one,many,L['role'],side_a='l'),
      vert('oitiva','oitiva_parte',one,('1..*' if many=='0..*' else many),L['oitiva']),
+     vert('oitiva_parte','pessoa',many,'0..1',L['pessoa']),
      horiz('veiculo','hsv',60,one,many,L['veiculo']),
      rep_hc('0..1',L['repasseOrigem']),
      chan('notif',.5,'usuario',1370,0,many,one,L['usuarioDestinatario']),
@@ -76,8 +80,8 @@ def edges(one,many,L):
     ]
 LD={k:k for k in []}
 LD=dict(detentor='detentor_atual_id',role='role_id',oitiva='oitiva_id',veiculo='veiculo_id',repasseOrigem='repasse_origem_id',usuarioDestinatario='usuario_destinatario_id',
- responsavel='responsavel_id',cadastradoPor='cadastrado_por_id',alteradoPor='alterado_por_id',solicitante='solicitante_id',destinatario='destinatario_id',usuario='usuario_id',procedimento='procedimento_id')
+ responsavel='responsavel_id',cadastradoPor='cadastrado_por_id',alteradoPor='alterado_por_id',solicitante='solicitante_id',destinatario='destinatario_id',usuario='usuario_id',procedimento='procedimento_id',pessoa='pessoa_id')
 LC=dict(detentor='detentorAtual',role='role',oitiva='oitiva',veiculo='veiculo',repasseOrigem='repasseOrigem',usuarioDestinatario='usuarioDestinatario',
- responsavel='responsavel',cadastradoPor='cadastradoPor',alteradoPor='alteradoPor',solicitante='solicitante',destinatario='destinatario',usuario='usuario',procedimento='procedimento')
+ responsavel='responsavel',cadastradoPor='cadastradoPor',alteradoPor='alteradoPor',solicitante='solicitante',destinatario='destinatario',usuario='usuario',procedimento='procedimento',pessoa='pessoa')
 build('DER',DER,layout(DER),edges('1','N',LD),'der')
 build('Classes',CLS,layout(CLS),edges('1','0..*',LC),'classes')
