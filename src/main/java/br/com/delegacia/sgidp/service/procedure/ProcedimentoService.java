@@ -102,6 +102,7 @@ public class ProcedimentoService {
         return ProcedimentoResponseDto.de(procedimento);
     }
 
+    @Transactional 
     public ProcedimentoResponseDto arquivar(Long id, ArquivarProcedimentoRequestDto dto, String login) {
         Usuario usuario = usuarioRepository.findByLogin(login)
                 .orElseThrow(() -> new RegraNegocioException(
