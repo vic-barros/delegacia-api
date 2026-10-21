@@ -12,6 +12,9 @@ public record OitivaParteRequestDto(
 
         @NotBlank(message = "O nome da parte deve ser informado")
         @Size(max = 150, message = "O nome da parte deve ter no máximo 150 caracteres")
-        String nomeParte
+        String nomeParte,
+
+        // Opcional: id de uma pessoa já cadastrada (GET /pessoas). Sem ele, a parte fica só com o nome
+        Long pessoaId
 ) {
 }

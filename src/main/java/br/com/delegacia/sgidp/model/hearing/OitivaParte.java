@@ -1,5 +1,6 @@
 package br.com.delegacia.sgidp.model.hearing;
 
+import br.com.delegacia.sgidp.model.party.Pessoa;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,8 +19,9 @@ import br.com.delegacia.sgidp.enums.party.TipoParte;
 @Table(name = "oitiva_parte")
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) //faz o lombok gerar p construtor vazio como protected em vez de public
-@SequenceGenerator(name= "seq_oitiva_parte", sequenceName = "seq_oitiva_parte", allocationSize = 1, initialValue = 1)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+//faz o lombok gerar p construtor vazio como protected em vez de public
+@SequenceGenerator(name = "seq_oitiva_parte", sequenceName = "seq_oitiva_parte", allocationSize = 1, initialValue = 1)
 public class OitivaParte {
 
     @Id
@@ -41,9 +43,20 @@ public class OitivaParte {
             foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_oitiva"))
     private Oitiva oitiva;
 
-    public OitivaParte(TipoParte tipoParte, String nomeParte){
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pessoa_id",
+            foreignKey = @ForeignKey(value = ConstraintMode.CONSTRAINT, name = "fk_oitiva_parte_pessoa"))
+    private Pessoa pessoa;
+
+    public OitivaParte(TipoParte tipoParte, String nomeParte) {
         this.tipoParte = tipoParte;
         this.nomeParte = nomeParte;
     }
 
+    // Novo: parte já ligada a uma pessoa cadastrada (pessoa pode ser nula)
+    public OitivaParte(TipoParte tipoParte, String nomeParte, Pessoa pessoa) {
+        this.tipoParte = tipoParte;
+        this.nomeParte = nomeParte;
+        this.pessoa = pessoa;
+    }
 }
