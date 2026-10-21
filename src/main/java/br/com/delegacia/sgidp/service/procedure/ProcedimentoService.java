@@ -114,8 +114,8 @@ public class ProcedimentoService {
                         "Procedimento não encontrado"
                 ));
         
-        if (!usuario.getId().equals(procedimento.getDetentorAtual().getId())) {
-                throw new RegraNegocioException("Procedimento não encontrado"); //proposital, o usuário não deve saber se o procedimento existe caso não pertença a ele
+        if (!usuario.getId().equals(procedimento.getDetentorAtual().getId()) && !usuario.getRole().equals("ROLE_DELEGADO")) {
+                throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem arquivar esse procedimento");
         }
 
         if (procedimento.getStatusProcedimento() == StatusProcedimento.ARQUIVADO) {
