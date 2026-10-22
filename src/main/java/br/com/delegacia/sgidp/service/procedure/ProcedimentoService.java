@@ -11,6 +11,7 @@ import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
 import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
+import br.com.delegacia.sgidp.model.hearing.Oitiva;
 import br.com.delegacia.sgidp.model.procedure.HistoricoStatusProcedimento;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
 import br.com.delegacia.sgidp.model.user.Usuario;
@@ -25,10 +26,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ProcedimentoService {
+
+    private static final DateTimeFormatter DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
 
     private final ProcedimentoRepository procedimentoRepository;
     private final HistoricoCustodiaRepository historicoCustodiaRepository;
@@ -117,7 +123,12 @@ public class ProcedimentoService {
                         "Procedimento não encontrado"
                 ));
         
-        if (!usuario.getId().equals(procedimento.getDetentorAtual().getId()) && !usuario.getRole().equals("ROLE_DELEGADO")) {
+        // Delegado arquiva qualquer procedimento; Policial, só o que está na posse dele
+        // (o Estagiário já é barrado no SecurityConfig). Compara o texto do papel (getAcesso), não o objeto Role.
+        boolean delegado = "ROLE_DELEGADO".equals(usuario.getRole().getAcesso());
+        boolean detentor = procedimento.getDetentorAtual() != null
+                && usuario.getId().equals(procedimento.getDetentorAtual().getId());
+        if (!delegado && !detentor) {
                 throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem arquivar esse procedimento");
         }
 
@@ -129,14 +140,21 @@ public class ProcedimentoService {
                 throw new RegraNegocioException("Não é possível arquivar o procedimento enquanto houver repasses pendentes");
         }
 
-        if (!oitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc(id, StatusOitiva.AGENDADA).isEmpty()) {
-                throw new RegraNegocioException("Não é possível arquivar o procedimento enquanto houver oitivas agendadas");
+        // A mensagem lista as datas para o usuário concluir as já realizadas e desmarcar as demais
+        List<Oitiva> agendadas = oitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc(id, StatusOitiva.AGENDADA);
+        if (!agendadas.isEmpty()) {
+                List<String> datas = new ArrayList<>();
+                for (Oitiva oitiva : agendadas) {
+                        datas.add(oitiva.getDataHora().format(DATA_HORA));
+                }
+                throw new RegraNegocioException("Não é possível arquivar o procedimento enquanto houver oitivas agendadas ("
+                        + String.join(", ", datas) + "). Conclua as já realizadas e desmarque as demais");
         }
 
         StatusProcedimento statusAnterior = procedimento.getStatusProcedimento();
         procedimento.setStatusProcedimento(StatusProcedimento.ARQUIVADO);
 
-        historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(procedimento, statusAnterior, StatusProcedimento.ARQUIVADO, dto.motivo(), usuario));
+        historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(procedimento, statusAnterior, StatusProcedimento.ARQUIVADO, dto.motivo().trim(), usuario));
 
         return ProcedimentoResponseDto.de(procedimento);
     }
