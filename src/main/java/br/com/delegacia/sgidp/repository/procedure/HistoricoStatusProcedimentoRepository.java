@@ -1,5 +1,6 @@
 package br.com.delegacia.sgidp.repository.procedure;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import br.com.delegacia.sgidp.model.procedure.HistoricoStatusProcedimento;
@@ -18,5 +19,9 @@ public interface HistoricoStatusProcedimentoRepository extends JpaRepository<His
             GROUP BY h.procedimento.id
             """)
     List<DataPorProcedimento> buscarUltimaTransicao(Collection<Long> procedimentoIds);
+
+    // Detalhe do procedimento: mudanças de status em ordem, com o responsável na mesma consulta
+    @EntityGraph(attributePaths = "responsavel")
+    List<HistoricoStatusProcedimento> findByProcedimentoIdOrderByDataTransicaoAsc(Long procedimentoId);
 
 }

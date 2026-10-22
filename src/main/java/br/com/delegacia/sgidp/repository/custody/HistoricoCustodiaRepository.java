@@ -1,6 +1,7 @@
 package br.com.delegacia.sgidp.repository.custody;
 
 import br.com.delegacia.sgidp.repository.procedure.DataPorProcedimento;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,8 @@ public interface HistoricoCustodiaRepository
               AND h.dataFim IS NULL
             """)
     List<DataPorProcedimento> buscarInicioCustodiaAtual(Collection<Long> procedimentoIds);
+
+    // Detalhe do procedimento: todas as posses, da mais antiga para a atual, com o usuário na mesma consulta
+    @EntityGraph(attributePaths = "usuario")
+    List<HistoricoCustodia> findByProcedimentoIdOrderByDataInicioAsc(Long procedimentoId);
 }

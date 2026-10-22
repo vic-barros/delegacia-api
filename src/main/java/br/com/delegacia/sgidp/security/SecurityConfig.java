@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/usuarios/cadastro").permitAll()
                         .requestMatchers(HttpMethod.GET, "/roles/cadastro").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Lista para os seletores (destinatário, responsável, detentor): vem antes da regra geral
+                        .requestMatchers(HttpMethod.GET, "/usuarios/operacionais").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Gestão de usuários: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
