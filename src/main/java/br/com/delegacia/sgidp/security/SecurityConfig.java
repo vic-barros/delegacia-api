@@ -74,6 +74,10 @@ public class SecurityConfig {
                         .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
                         // Oitivas: Delegado, Policial e Estagiário
                         .requestMatchers("/oitivas/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        // Pessoas: Delegado, Policial e Estagiário (os mesmos das oitivas)
+                        .requestMatchers("/pessoas/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        // Painel e Minha mesa: Delegado, Policial e Estagiário (cada um vê os próprios dados)
+                        .requestMatchers(HttpMethod.GET, "/painel/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversorDePapeis())));

@@ -1,6 +1,7 @@
 package br.com.delegacia.sgidp.repository.vehicle;
 
 import br.com.delegacia.sgidp.model.vehicle.HistoricoSituacaoVeiculo;
+import br.com.delegacia.sgidp.repository.procedure.DataPorProcedimento;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -31,4 +32,13 @@ public interface HistoricoSituacaoVeiculoRepository extends JpaRepository<Histor
 
         LocalDateTime getDataEntrada();
     }
+
+    // Minha mesa: última mudança de situação de algum veículo de cada procedimento
+    @Query("""
+            SELECT h.veiculo.procedimento.id AS procedimentoId, MAX(h.dataTransicao) AS data
+            FROM HistoricoSituacaoVeiculo h
+            WHERE h.veiculo.procedimento.id IN :procedimentoIds
+            GROUP BY h.veiculo.procedimento.id
+            """)
+    List<DataPorProcedimento> buscarUltimaMovimentacao(Collection<Long> procedimentoIds);
 }

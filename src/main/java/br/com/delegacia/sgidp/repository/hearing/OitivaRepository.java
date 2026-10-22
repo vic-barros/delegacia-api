@@ -2,11 +2,13 @@ package br.com.delegacia.sgidp.repository.hearing;
 
 import br.com.delegacia.sgidp.enums.hearing.StatusOitiva;
 import br.com.delegacia.sgidp.model.hearing.Oitiva;
+import br.com.delegacia.sgidp.repository.procedure.DataPorProcedimento;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface OitivaRepository extends JpaRepository<Oitiva, Long> {
@@ -52,4 +54,18 @@ public interface OitivaRepository extends JpaRepository<Oitiva, Long> {
 
     // Para o arquivamento do procedimento: oitivas ainda AGENDADAS bloqueiam o arquivamento
     List<Oitiva> findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc(Long procedimentoId, StatusOitiva status);
+
+    // Minha mesa: oitivas ainda AGENDADAS dos procedimentos, da mais próxima para a mais distante
+    List<Oitiva> findByProcedimentoIdInAndStatusOitivaOrderByDataHoraAsc(Collection<Long> procedimentoIds,
+                                                                         StatusOitiva status);
+
+    // Minha mesa: última movimentação com oitiva. Concluída conta pela data em que aconteceu; as demais, pelo cadastro
+    @Query("""
+            SELECT o.procedimento.id AS procedimentoId,
+                   MAX(CASE WHEN o.statusOitiva = :concluida THEN o.dataHora ELSE o.dataCadastro END) AS data
+            FROM Oitiva o
+            WHERE o.procedimento.id IN :procedimentoIds
+            GROUP BY o.procedimento.id
+            """)
+    List<DataPorProcedimento> buscarUltimaMovimentacao(Collection<Long> procedimentoIds, StatusOitiva concluida);
 }
