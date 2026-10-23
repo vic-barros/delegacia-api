@@ -41,6 +41,8 @@ sobra 1 minuto de folga para respirar, para uma pausa ou para mostrar a etiqueta
 
 **Vocês controlam prazos?** Não, por decisão: o prazo processual já é controlado pelo sistema institucional, e duplicar esse controle criaria duas fontes de verdade.
 
+**Mas as telas mostram prazo ("Vence em 2 dias", modelo "Prazos").** O protótipo foi desenhado antes dessa decisão e ainda não foi ajustado. A API não tem prazo: esses elementos saem do front. Melhor dizer isso antes de perguntarem, ao mostrar a primeira tela.
+
 **O que muda em relação à versão anterior (v1)?** A v1 era Java puro com JDBC. A v2 tem arquitetura em camadas, segurança com JWT e perfis, repasse com aceite (na v1 era de um lado só), veículos, pessoas, painel e relatórios.
 
 ### Sobre segurança, sigilo e LGPD
