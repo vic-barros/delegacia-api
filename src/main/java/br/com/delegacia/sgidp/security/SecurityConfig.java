@@ -61,11 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
                         .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
-<<<<<<< HEAD
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/arquivar").hasAnyRole("DELEGADO", "POLICIAL")
-=======
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/reabrir").hasAnyRole("DELEGADO","POLICIAL")
->>>>>>> 2c99c0b (feat: adiciona reabertura de procedimentos)
                         // Exportação de Procedimento: Só Delegado e Policial
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)

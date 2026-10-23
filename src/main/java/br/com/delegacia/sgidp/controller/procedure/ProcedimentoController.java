@@ -25,16 +25,15 @@ public class ProcedimentoController {
         return procedimentoService.cadastrar(dadosDto, jwt.getSubject());
     }
 
-<<<<<<< HEAD
     @PatchMapping("/{id}/arquivar")
     @ResponseStatus(HttpStatus.OK)
     public ProcedimentoResponseDto arquivarProcedimento(@PathVariable Long id, @RequestBody @Valid ArquivarProcedimentoRequestDto dto, @AuthenticationPrincipal Jwt jwt) {
         return procedimentoService.arquivar(id, dto, jwt.getSubject());
-=======
+    }
+    
     @PatchMapping("/{id}/reabrir")
     @ResponseStatus(HttpStatus.OK)
     public ProcedimentoResponseDto reabrirProcedimento(@PathVariable Long id, @RequestBody @Valid ReabrirProcedimentoRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt) {
         return procedimentoService.reabrir(id, dadosDto, jwt.getSubject());
->>>>>>> 2c99c0b (feat: adiciona reabertura de procedimentos)
     }
 }
