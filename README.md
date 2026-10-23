@@ -73,7 +73,7 @@ o realiza: o SISGEP cobre o que ficava de fora, o controle interno da delegacia.
 
 <p align="justify">&emsp;&emsp;<strong>Grafo de vínculos:</strong> liga pessoas, procedimentos, oitivas e veículos numa só visão. A partir de
 uma pessoa ou de um procedimento, o servidor vê com quem e com o que ele se relaciona (por exemplo, a mesma
-testemunha em dois inquéritos ou o veículo ligado ao investigado) pode buscar o caminho entre dois itens e exportar o relatório de vínculos. A base já
+testemunha em dois inquéritos ou o veículo ligado ao investigado), pode buscar o caminho entre dois itens e exportar o relatório de vínculos. A base já
 está pronta: o cadastro de pessoas é ligado às partes das oitivas, e cada pessoa tem a lista das suas participações.</p>
 
 <p align="justify">&emsp;&emsp;<strong>Assistente com IA:</strong> gera o resumo de um procedimento para o servidor que está com ele. O sigilo
