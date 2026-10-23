@@ -1,0 +1,73 @@
+ @PatchMapping("/{id}/reabrir")
+    @ResponseStatus(HttpStatus.OK)
+    public ProcedimentoResponseDto reabrirProcedimento(@PathVariable Long id, @RequestBody @Valid ReabrirProcedimentoRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt) {
+        return procedimentoService.reabrir(id, dadosDto, jwt.getSubject());
+    }
+
+package br.com.delegacia.sgidp.dto.procedure;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+
+public record ReabrirProcedimentoRequestDto (
+    @NotBlank(message="O motivo não pode estar vazio")
+    @Min(value=3, message="O motivo deve ter ao menos 3 caracteres")
+    @Max(value=500, message="O motivo deve ter no máximo 500 caracteres")
+    String motivo
+) {
+    
+}
+
+
+@Transactional 
+    public ProcedimentoResponseDto reabrir(Long id, ReabrirProcedimentoRequestDto dadosDto, String login) {
+        // verificar se usuario existe
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new RegraNegocioException(
+                        "Usuário autenticado não encontrado"
+                ));
+        // verificar se procedimento existe
+        Procedimento procedimento = procedimentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Procedimento não encontrado"));
+
+        // verificar se usuario é detentor do procedimento ou é delegado
+        if (!procedimento.getDetentorAtual().equals(usuario.getId()) && !usuario.getRole().equals("ROLE_DELEGADO")) {
+                throw new RegraNegocioException("Não é possível reabrir um procedimento que não está sob sua posse");
+        }
+
+        // verifica se o procedimento não está arquivado
+        if (!procedimento.getStatusProcedimento().equals(StatusProcedimento.ARQUIVADO)) {
+                throw new RegraNegocioException("Não é possível reabrir um procedimento que não está arquivado");
+        }
+
+        StatusProcedimento statusAnterior = procedimento.getStatusProcedimento();
+        procedimento.setStatusProcedimento(StatusProcedimento.EM_ANDAMENTO);
+
+        HistoricoStatusProcedimento novoHistorico = new HistoricoStatusProcedimento(procedimento, statusAnterior, StatusProcedimento.EM_ANDAMENTO, dadosDto.motivo(), usuario);
+        historicoStatusProcedimentoRepository.save(novoHistorico);
+
+        return ProcedimentoResponseDto.de(procedimento);
+    }
+
+                        .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/reabrir").hasAnyRole("DELEGADO","POLICIAL")
+
+cobre bem essa feat?
+
+UC17 - Reabrir Procedimento (RF23)
+
+Ator(es): Delegado, Policial
+
+Pre-condicoes: Procedimento esta com status "arquivado".
+
+Fluxo principal:
+
+Usuario seleciona o procedimento arquivado.
+
+Usuario informa motivo da reabertura (ex.: cota judicial/ministerial) e referencia do documento que a determina.
+
+Sistema atualiza status para "em andamento".
+
+Sistema registra a transicao em HistoricoStatusProcedimento.
+
+Pos-condicoes: Procedimento volta a aceitar novas oitivas (UC04) e solicitacoes de repasse (UC08); oitivas e historico anteriores permanecem intactos.

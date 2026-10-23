@@ -3,6 +3,7 @@ package br.com.delegacia.sgidp.service.procedure;
 import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoResponseDto;
+import br.com.delegacia.sgidp.dto.procedure.ReabrirProcedimentoRequestDto;
 import br.com.delegacia.sgidp.enums.custody.OrigemHistoricoCustodia;
 import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.hearing.StatusOitiva;
@@ -107,6 +108,36 @@ public class ProcedimentoService {
         historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(
                 procedimento, null, StatusProcedimento.EM_ANDAMENTO, "Cadastro do procedimento", usuario
         ));
+
+        return ProcedimentoResponseDto.de(procedimento);
+    }
+
+    @Transactional 
+    public ProcedimentoResponseDto reabrir(Long id, ReabrirProcedimentoRequestDto dadosDto, String login) {
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new RegraNegocioException(
+                        "Usuário autenticado não encontrado"
+                ));
+
+        Procedimento procedimento = procedimentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Procedimento não encontrado"));
+
+        boolean delegado = "ROLE_DELEGADO".equals(usuario.getRole().getAcesso());
+        boolean detentor = procedimento.getDetentorAtual() != null
+                && usuario.getId().equals(procedimento.getDetentorAtual().getId());
+        if (!delegado && !detentor) {
+                throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem reabrir esse procedimento");
+        }
+
+        if (!procedimento.getStatusProcedimento().equals(StatusProcedimento.ARQUIVADO)) {
+                throw new RegraNegocioException("Não é possível reabrir um procedimento que não está arquivado");
+        }
+
+        StatusProcedimento statusAnterior = procedimento.getStatusProcedimento();
+        procedimento.setStatusProcedimento(StatusProcedimento.EM_ANDAMENTO);
+
+        HistoricoStatusProcedimento novoHistorico = new HistoricoStatusProcedimento(procedimento, statusAnterior, StatusProcedimento.EM_ANDAMENTO, dadosDto.motivo(), usuario);
+        historicoStatusProcedimentoRepository.save(novoHistorico);
 
         return ProcedimentoResponseDto.de(procedimento);
     }
