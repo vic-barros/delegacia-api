@@ -10,20 +10,22 @@ sobra 1 minuto de folga para respirar, para uma pausa ou para mostrar a etiqueta
 | 1 | Capa | 0:15 | Quem somos e o que é o SISGEP |
 | 2 | O problema | 0:25 | O controle interno da delegacia está em livros e planilhas e se perde |
 | 3 | A solução | 0:20 | Um sistema só, com histórico de cada mudança |
-| 4 | Painel | 0:20 | O dia do servidor em uma tela |
-| 5 | Minha mesa | 0:25 | Cada procedimento diz o próximo passo; nada fica esquecido |
-| 6 | Repasse | 0:20 | A custódia só muda de mãos com aceite |
-| 7 | Veículo | 0:25 | Lacre, etiqueta com QR e relatório de carga conferido |
-| 8 | Sigilo e LGPD | 0:25 | O dado de investigação não sai da delegacia |
-| 9 | Implantação | 0:25 | Um computador, um comando; pronto para crescer |
-| 10 | Próximos passos | 0:25 | Toda a custódia da delegacia em um só lugar |
-| 11 | Obrigado | 0:10 | Fechamento e equipe |
+| 4 | Painel | 0:15 | O dia do servidor em uma tela |
+| 5 | Minha mesa | 0:20 | Cada procedimento diz o próximo passo; nada fica esquecido |
+| 6 | Detalhe do procedimento | 0:20 | A história do caso e as regras na tela (arquivar bloqueado); avisar que o prazo do protótipo saiu do escopo |
+| 7 | Repasse | 0:20 | A custódia só muda de mãos com aceite |
+| 8 | Veículo | 0:20 | Lacre, etiqueta com QR e relatório de carga conferido |
+| 9 | Vínculos | 0:25 | Grafo ligando pessoas, casos e veículos; resumo com IA com sigilo (em desenvolvimento) |
+| 10 | Sigilo e LGPD | 0:20 | O dado de investigação não sai da delegacia |
+| 11 | Implantação | 0:20 | Um computador, um comando; pronto para crescer |
+| 12 | Próximos passos | 0:15 | Toda a custódia da delegacia em um só lugar |
+| 13 | Obrigado | 0:10 | Fechamento e equipe |
 
 **Dicas para o treino**
-- Cronometrar pelo menos 3 vezes, em pé, com os slides. Se passar de 4min30, encurtar as falas dos slides 4 a 7 (as telas falam por si).
-- Definir quem fala cada bloco. Sugestão: abertura (1 a 3), telas (4 a 7), confiança e futuro (8 a 11). Trocar de pessoa no início de cada bloco, sem "agora o fulano vai falar".
+- Cronometrar pelo menos 3 vezes, em pé, com os slides. Se passar de 4min30, encurtar as falas dos slides 4 a 9 (as telas falam por si).
+- Definir quem fala cada bloco. Sugestão: abertura (1 a 3), telas (4 a 9), confiança e futuro (10 a 13). Trocar de pessoa no início de cada bloco, sem "agora o fulano vai falar".
 - Uma frase de efeito para abrir e outra para fechar, decoradas. O resto pode ser dito com as próprias palavras.
-- Levar uma **etiqueta impressa** do veículo de demonstração e escanear o QR com o celular durante o slide 7, se houver tempo.
+- Levar uma **etiqueta impressa** do veículo de demonstração e escanear o QR com o celular durante o slide 8, se houver tempo.
 
 ## Demonstração (se pedirem) e plano B
 
