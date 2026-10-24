@@ -61,7 +61,9 @@ public class SecurityConfig {
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
                         .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
+                        .requestMatchers(HttpMethod.GET, "/procedimentos/{id}/historico-remessa").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/arquivar").hasAnyRole("DELEGADO", "POLICIAL")
+                        .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/registrar-remessa").hasAnyRole("DELEGADO", "POLICIAL")
                         // Exportação de Procedimento: Só Delegado e Policial
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)

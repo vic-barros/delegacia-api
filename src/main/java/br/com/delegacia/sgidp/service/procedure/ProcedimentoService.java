@@ -1,17 +1,21 @@
 package br.com.delegacia.sgidp.service.procedure;
 
 import br.com.delegacia.sgidp.dto.procedure.ArquivarProcedimentoRequestDto;
+import br.com.delegacia.sgidp.dto.procedure.HistoricoRemessaFinalResponseDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoRequestDto;
 import br.com.delegacia.sgidp.dto.procedure.ProcedimentoResponseDto;
+import br.com.delegacia.sgidp.dto.procedure.RegistrarRemessaFinalRequestDto;
 import br.com.delegacia.sgidp.enums.custody.OrigemHistoricoCustodia;
 import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.hearing.StatusOitiva;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
+import br.com.delegacia.sgidp.exception.ConfirmacaoNecessariaException;
 import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
 import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
 import br.com.delegacia.sgidp.model.hearing.Oitiva;
+import br.com.delegacia.sgidp.model.procedure.HistoricoRemessaFinal;
 import br.com.delegacia.sgidp.model.procedure.HistoricoStatusProcedimento;
 import br.com.delegacia.sgidp.model.procedure.Procedimento;
 import br.com.delegacia.sgidp.model.user.Usuario;
@@ -19,6 +23,7 @@ import br.com.delegacia.sgidp.repository.custody.HistoricoCustodiaRepository;
 import br.com.delegacia.sgidp.repository.delegation.RepasseRepository;
 import br.com.delegacia.sgidp.repository.hearing.OitivaRepository;
 import br.com.delegacia.sgidp.repository.procedure.ProcedimentoRepository;
+import br.com.delegacia.sgidp.repository.procedure.HistoricoRemessaFinalRepository;
 import br.com.delegacia.sgidp.repository.procedure.HistoricoStatusProcedimentoRepository;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +47,7 @@ public class ProcedimentoService {
     private final UsuarioRepository usuarioRepository;
     private final RepasseRepository repasseRepository;
     private final OitivaRepository oitivaRepository;
+    private final HistoricoRemessaFinalRepository historicoRemessaFinalRepository;
 
     
     @Transactional
@@ -157,5 +163,71 @@ public class ProcedimentoService {
         historicoStatusProcedimentoRepository.save(new HistoricoStatusProcedimento(procedimento, statusAnterior, StatusProcedimento.ARQUIVADO, dto.motivo().trim(), usuario));
 
         return ProcedimentoResponseDto.de(procedimento);
+    }
+
+    @Transactional
+    public ProcedimentoResponseDto registrarRemessaFinal(Long id, boolean sobrescrever, RegistrarRemessaFinalRequestDto dadosDto, String login) {
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new RegraNegocioException(
+                        "Usuário autenticado não encontrado"
+                ));
+        
+        Procedimento procedimento = procedimentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Procedimento não encontrado"
+                ));
+
+        if (dadosDto.data().isBefore(procedimento.getDataAbertura())) {
+                throw new RegraNegocioException("Não é possível definir uma data de remessa anterior à data de abertura do procedimento.");
+        }
+
+        if (dadosDto.data().equals(procedimento.getDataRemessaFinal()) && dadosDto.numeroProtocolo().equals(procedimento.getProtocoloRemessaFinal())) {
+                throw new RecursoDuplicadoException("Já existe um registro de remessa com a mesma data e número de protocolo.");
+        }
+
+        if (procedimento.getStatusProcedimento().equals(StatusProcedimento.ARQUIVADO)) {
+                throw new RegraNegocioException("Não é possível registrar uma remessa para um procedimento arquivado.");
+        }
+        
+        boolean delegado = "ROLE_DELEGADO".equals(usuario.getRole().getAcesso());
+        boolean detentor = procedimento.getDetentorAtual() != null
+                && usuario.getId().equals(procedimento.getDetentorAtual().getId());
+        if (!delegado && !detentor) {
+                throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem registrar a remessa final desse procedimento");
+        }
+        
+        boolean existeRemessaRegistrada = procedimento.getDataRemessaFinal() != null;
+        if (existeRemessaRegistrada && !sobrescrever) {
+                throw new ConfirmacaoNecessariaException("Já existe uma remessa registrada. Confirme que deseja sobrescrever antes de prosseguir.", "sobrescrever");
+        }
+
+        LocalDate dataAnterior = procedimento.getDataRemessaFinal();
+        String protocoloAnterior = procedimento.getProtocoloRemessaFinal();
+
+        procedimento.setDataRemessaFinal(dadosDto.data());
+        procedimento.setProtocoloRemessaFinal(dadosDto.numeroProtocolo().strip());
+
+        historicoRemessaFinalRepository.save(new HistoricoRemessaFinal(
+            procedimento,
+            dataAnterior,
+            protocoloAnterior,
+            dadosDto.data(),
+            dadosDto.numeroProtocolo().strip(),
+            usuario
+        ));
+
+        return ProcedimentoResponseDto.de(procedimento);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HistoricoRemessaFinalResponseDto> listarHistoricoRemessa(Long id) {
+        if (!procedimentoRepository.existsById(id)) {
+                throw new RecursoNaoEncontradoException("Procedimento não encontrado");
+        }
+        return historicoRemessaFinalRepository
+                .findByProcedimentoIdOrderByDataRegistroAsc(id)
+                .stream()
+                .map(HistoricoRemessaFinalResponseDto::de)
+                .toList();
     }
 }
