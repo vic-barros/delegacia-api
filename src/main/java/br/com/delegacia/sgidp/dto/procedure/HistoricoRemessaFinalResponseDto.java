@@ -1,6 +1,6 @@
 package br.com.delegacia.sgidp.dto.procedure;
 
-import br.com.delegacia.sgidp.dto.user.UsuarioResponseDto;
+import br.com.delegacia.sgidp.dto.user.UsuarioResumoResponseDto;
 import br.com.delegacia.sgidp.model.procedure.HistoricoRemessaFinal;
 
 import java.time.LocalDate;
@@ -13,7 +13,7 @@ public record HistoricoRemessaFinalResponseDto(
         LocalDate dataRemessaNova,
         String protocoloNovo,
         LocalDateTime dataRegistro,
-        UsuarioResponseDto responsavel
+        UsuarioResumoResponseDto responsavel
 ) {
     public static HistoricoRemessaFinalResponseDto de(HistoricoRemessaFinal h) {
         return new HistoricoRemessaFinalResponseDto(
@@ -23,7 +23,7 @@ public record HistoricoRemessaFinalResponseDto(
                 h.getDataRemessaNova(),
                 h.getProtocoloNovo(),
                 h.getDataRegistro(),
-                UsuarioResponseDto.de(h.getResponsavel())
+                UsuarioResumoResponseDto.de(h.getResponsavel())
         );
     }
 }
