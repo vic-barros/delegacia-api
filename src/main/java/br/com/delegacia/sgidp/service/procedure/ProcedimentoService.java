@@ -211,6 +211,13 @@ public class ProcedimentoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Procedimento não encontrado"
                 ));
+        
+        boolean delegado = "ROLE_DELEGADO".equals(usuario.getRole().getAcesso());
+        boolean detentor = procedimento.getDetentorAtual() != null
+                && usuario.getId().equals(procedimento.getDetentorAtual().getId());
+        if (!delegado && !detentor) {
+            throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem registrar a remessa final desse procedimento");
+        }
 
         if (dadosDto.data().isBefore(procedimento.getDataAbertura())) {
             throw new RegraNegocioException("Não é possível definir uma data de remessa anterior à data de abertura do procedimento.");
@@ -224,13 +231,6 @@ public class ProcedimentoService {
 
         if (procedimento.getStatusProcedimento().equals(StatusProcedimento.ARQUIVADO)) {
             throw new RegraNegocioException("Não é possível registrar uma remessa para um procedimento arquivado.");
-        }
-
-        boolean delegado = "ROLE_DELEGADO".equals(usuario.getRole().getAcesso());
-        boolean detentor = procedimento.getDetentorAtual() != null
-                && usuario.getId().equals(procedimento.getDetentorAtual().getId());
-        if (!delegado && !detentor) {
-            throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem registrar a remessa final desse procedimento");
         }
 
         boolean existeRemessaRegistrada = procedimento.getDataRemessaFinal() != null;
