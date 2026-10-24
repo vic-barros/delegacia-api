@@ -5,6 +5,9 @@ import br.com.delegacia.sgidp.dto.procedure.*;
 import br.com.delegacia.sgidp.service.procedure.ProcedimentoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -45,7 +48,20 @@ public class ProcedimentoController {
     public ProcedimentoResponseDto arquivarProcedimento(@PathVariable Long id, @RequestBody @Valid ArquivarProcedimentoRequestDto dto, @AuthenticationPrincipal Jwt jwt) {
         return procedimentoService.arquivar(id, dto, jwt.getSubject());
     }
-    
+
+    @PatchMapping("/{id}/registrar-remessa")
+    @ResponseStatus(HttpStatus.OK)
+    public ProcedimentoResponseDto registrarRemessaFinal(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean sobrescrever, @RequestBody @Valid RegistrarRemessaFinalRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt ) {
+        return procedimentoService.registrarRemessaFinal(id, sobrescrever, dadosDto, jwt.getSubject());
+    }
+
+    @GetMapping("/{id}/historico-remessa")
+    @ResponseStatus(HttpStatus.OK)
+    public List<HistoricoRemessaFinalResponseDto> listarHistoricoRemessa(
+            @PathVariable Long id) {
+        return procedimentoService.listarHistoricoRemessa(id);
+    }
+
     @PatchMapping("/{id}/reabrir")
     @ResponseStatus(HttpStatus.OK)
     public ProcedimentoResponseDto reabrirProcedimento(@PathVariable Long id, @RequestBody @Valid ReabrirProcedimentoRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt) {
