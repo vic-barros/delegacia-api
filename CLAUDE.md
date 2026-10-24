@@ -139,11 +139,10 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
   registro em histórico.
   **Sem controle de prazo** (decisão: o sistema institucional da Polícia Civil já controla; o SISGEP é controle
   interno) e **sem status REMETIDO**: "Remetidos" na listagem = filtro derivado (remessa final registrada).
-  Remetido que volta para diligências = reabrir. Remessa final (UC11, colega; Delegado/Policial): grava também uma
-  linha em `HistoricoStatusProcedimento` no mesmo `@Transactional`, com `statusAnterior` = `statusNovo` (status
-  atual, a remessa não muda status) e o motivo com data e protocolo; na sobrescrita (confirmação via flag + 409) o
-  motivo guarda os valores substituídos. Assim fica quem registrou e quando, e a remessa aparece em
-  `GET /procedimentos/{id}/historico-status`; o front reconhece o evento por `statusAnterior == statusNovo`. Listagem (RF36, colega): abas em andamento/arquivados/remetidos/
+  Remetido que volta para diligências = reabrir. Remessa final (UC11, PR #28 do colega): `PATCH /procedimentos/{id}/registrar-remessa`
+  (Delegado ou Policial detentor), histórico próprio imutável `HistoricoRemessaFinal` (remessa anterior e nova,
+  responsável, `dataRegistro`) consultado em `GET /procedimentos/{id}/historico-remessa`; sobrescrita com
+  `confirmarSobrescrita` no corpo + 409. Listagem (RF36, colega): abas em andamento/arquivados/remetidos/
   todos com contagem, filtros tipo (vários), ano, detentor e texto (número/crime), paginada, linha indica repasse
   pendente.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
