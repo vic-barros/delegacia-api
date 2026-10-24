@@ -6,6 +6,7 @@ import br.com.delegacia.sgidp.model.user.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,4 +33,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     // Listagem pelo nome sem filtro
     List<Usuario> findAllByOrderByNomeAsc();
+
+    // Usuários de vários papéis com um status, em ordem alfabética.
+    // "In" no nome do método: o parâmetro de acessos é uma Collection (WHERE role.acesso IN (...))
+    List<Usuario> findByRoleAcessoInAndStatusUsuarioOrderByNomeAsc(Collection<String> acessos,
+                                                                   StatusUsuario statusUsuario);
 }

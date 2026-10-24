@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/usuarios/cadastro").permitAll()
                         .requestMatchers(HttpMethod.GET, "/roles/cadastro").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Lista para os seletores (destinatário, responsável, detentor): vem antes da regra geral
+                        .requestMatchers(HttpMethod.GET, "/usuarios/operacionais").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Gestão de usuários: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
                         // gestão de procedimentos
@@ -66,6 +68,8 @@ public class SecurityConfig {
                         // Exportação de Procedimento: Só Delegado e Policial
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
+                        .requestMatchers(HttpMethod.GET).hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        // Consulta de procedimentos (detalhe e históricos): servidores, inclusive Estagiário.
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Exportação de veículos (relatório de carga): só Delegado/Policial. Antes da regra de GET
                         // abaixo, porque o Spring usa a primeira regra que combina com a rota

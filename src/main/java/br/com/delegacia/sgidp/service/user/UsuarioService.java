@@ -25,6 +25,7 @@ import java.util.List;
 public class UsuarioService {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final List<String> PAPEIS_OPERACIONAIS = List.of("ROLE_DELEGADO", "ROLE_POLICIAL", "ROLE_ESTAGIARIO");
 
     private final UsuarioRepository usuarioRepository;
     private final RoleRepository roleRepository;
@@ -63,6 +64,16 @@ public class UsuarioService {
         }
 
         return UsuarioResponseDto.de(usuario);
+    }
+
+    // Seletores do front: Delegados, Policiais e Estagiários APROVADOS (quem pode receber repasse e ser responsável)
+    public List<UsuarioResumoResponseDto> listarOperacionais() {
+        return usuarioRepository.findByRoleAcessoInAndStatusUsuarioOrderByNomeAsc(
+                        PAPEIS_OPERACIONAIS,
+                        StatusUsuario.APROVADO)
+                .stream()
+                .map(UsuarioResumoResponseDto::de)
+                .toList();
     }
 
     // UC03 - Listar usuários (status opcional: sem filtro devolve todos), em ordem alfabética

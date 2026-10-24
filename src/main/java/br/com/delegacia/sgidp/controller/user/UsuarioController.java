@@ -33,6 +33,12 @@ public class UsuarioController {
         return usuarioService.listar(status);
     }
 
+    // Delegado, Policial e Estagiário (regra própria no SecurityConfig, antes de /usuarios/**)
+    @GetMapping("/operacionais")
+    public List<UsuarioResumoResponseDto> listarOperacionais() {
+        return usuarioService.listarOperacionais();
+    }
+
     @GetMapping("/{id}")
     public UsuarioResponseDto buscarPorId(@PathVariable Long id) {
         return usuarioService.buscarPorId(id);

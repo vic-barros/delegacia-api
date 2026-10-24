@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface RepasseRepository extends JpaRepository<Repasse, Long> {
 
@@ -34,4 +35,10 @@ public interface RepasseRepository extends JpaRepository<Repasse, Long> {
 
     @EntityGraph(attributePaths = {"procedimento", "solicitante", "destinatario"})
     List<Repasse> findBySolicitanteLoginAndStatusRepasseOrderByDataSolicitacaoAsc(String login, StatusRepasse status);
+
+    // Detalhe do procedimento: o repasse pendente (só pode haver um por procedimento)
+    @EntityGraph(attributePaths = "destinatario")
+    Optional<Repasse> findFirstByProcedimentoIdAndStatusRepasse(Long procedimentoId, StatusRepasse statusRepasse);
 }
+
+
