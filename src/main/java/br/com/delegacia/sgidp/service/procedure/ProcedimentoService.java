@@ -216,7 +216,9 @@ public class ProcedimentoService {
             throw new RegraNegocioException("Não é possível definir uma data de remessa anterior à data de abertura do procedimento.");
         }
 
-        if (dadosDto.data().equals(procedimento.getDataRemessaFinal()) && dadosDto.numeroProtocolo().equals(procedimento.getProtocoloRemessaFinal())) {
+        String protocolo = dadosDto.numeroProtocolo().strip();
+
+        if (dadosDto.data().equals(procedimento.getDataRemessaFinal()) && protocolo.equals(procedimento.getProtocoloRemessaFinal())) {
             throw new RecursoDuplicadoException("Já existe um registro de remessa com a mesma data e número de protocolo.");
         }
 
@@ -240,14 +242,14 @@ public class ProcedimentoService {
         String protocoloAnterior = procedimento.getProtocoloRemessaFinal();
 
         procedimento.setDataRemessaFinal(dadosDto.data());
-        procedimento.setProtocoloRemessaFinal(dadosDto.numeroProtocolo().strip());
+        procedimento.setProtocoloRemessaFinal(protocolo);
 
         historicoRemessaFinalRepository.save(new HistoricoRemessaFinal(
                 procedimento,
                 dataAnterior,
                 protocoloAnterior,
                 dadosDto.data(),
-                dadosDto.numeroProtocolo().strip(),
+                protocolo,
                 usuario
         ));
 
