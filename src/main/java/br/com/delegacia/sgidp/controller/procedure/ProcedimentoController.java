@@ -45,4 +45,10 @@ public class ProcedimentoController {
     public ProcedimentoResponseDto arquivarProcedimento(@PathVariable Long id, @RequestBody @Valid ArquivarProcedimentoRequestDto dto, @AuthenticationPrincipal Jwt jwt) {
         return procedimentoService.arquivar(id, dto, jwt.getSubject());
     }
+    
+    @PatchMapping("/{id}/reabrir")
+    @ResponseStatus(HttpStatus.OK)
+    public ProcedimentoResponseDto reabrirProcedimento(@PathVariable Long id, @RequestBody @Valid ReabrirProcedimentoRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt) {
+        return procedimentoService.reabrir(id, dadosDto, jwt.getSubject());
+    }
 }
