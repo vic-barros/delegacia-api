@@ -32,7 +32,12 @@ informações e reduzindo a dependência de controles manuais, planilhas e regis
 
 <p align="justify">&emsp;&emsp;Na rotina cartorária de uma delegacia, <strong>todo o controle interno ainda é feito em livros, planilhas e
 papel</strong>. Não existe hoje um sistema para isso: quem está com cada procedimento, a quem ele foi repassado,
-quando cada oitiva foi marcada, onde está cada veículo apreendido e o que compõe a carga da unidade são anotados à mão.</p>
+quando cada oitiva foi marcada e quais veículos apreendidos estão sob a custódia da unidade são anotados à mão.</p>
+
+<p align="justify">&emsp;&emsp;No caso dos veículos apreendidos, não há padronização: a maioria das delegacias não tem um controle
+rígido dos veículos sob sua custódia. O mínimo de controle existente depende de planilhas preenchidas à mão, com
+retrabalho constante para mantê-las atualizadas e sem uma rastreabilidade centralizada dos dados: qual procedimento
+originou cada apreensão, qual a situação do veículo e se ele passou por perícia.</p>
 
 <p align="justify">&emsp;&emsp;Isso gera perda de rastreabilidade, retrabalho e dificuldade na conferência da carga da unidade, e dificulta
 que a Polícia Civil cumpra a sua atividade-fim, a investigação criminal e o atendimento ao público, porque grande
@@ -55,14 +60,15 @@ o realiza: o SISGEP cobre o que ficava de fora, o controle interno da delegacia.
 | **Procedimentos e custódia** | Cadastro (BO, IP, TCO, APF, AIAI, AAFAI, ROP), posse com histórico, **repasse com aceite** (pendente, aceito, recusado), arquivamento com histórico |
 | **Oitivas** | Agenda com alerta de conflito de horário, remarcação, desmarcação com motivo, conclusão, sinalização de oitivas sem baixa e avisos automáticos |
 | **Pessoas** | Cadastro de vítimas, testemunhas e investigados ligado às partes das oitivas, com as participações de cada pessoa (base do grafo de vínculos) |
-| **Veículos apreendidos** | Cadastro com **lacre gerado pelo sistema**, situação (na DEPOL, pátio, devolvido, descartado) e perícia com histórico, alerta de duplicidade de placa/chassi/motor |
+| **Veículos apreendidos** | Controle dos veículos sob custódia da delegacia, cada um **vinculado ao seu procedimento**, com **lacre interno gerado pelo sistema** (identifica e localiza o veículo dentro da DEPOL), situação (na DEPOL, pátio, devolvido, descartado) e perícia com histórico, alerta de duplicidade de placa/chassi/motor |
 | **Painel e Minha mesa** | Visão do dia (oitivas, repasses pendentes, veículos na DEPOL) e a mesa do servidor com o **próximo passo** de cada procedimento |
 | **Notificações** | Repasse recebido, oitiva próxima, atribuída ou sem baixa, cadastro pendente |
 | **Exportação** | Relatórios de procedimentos e veículos em **XLSX e PDF** |
 
 ### Destaques
 
-- **Etiqueta do veículo com QR code** (PDF 100 x 50 mm): o QR abre a ficha do veículo no sistema e não carrega dados.
+- **Etiqueta do veículo com QR code** (PDF 100 x 50 mm): com o lacre interno, identifica o veículo no pátio da
+  DEPOL; o QR abre a ficha do veículo no sistema e não carrega dados.
 - **Relatório de carga** em PDF, com coluna "Conferido" e campo de assinatura para a conferência física da unidade.
 - **Minha mesa**: cada procedimento mostra há quanto tempo está na posse e o que fazer em seguida
   ("Aguardando aceite", "Oitiva hoje, 16:30", "Parado há 63 dias").

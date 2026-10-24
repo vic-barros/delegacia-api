@@ -139,7 +139,12 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
   registro em histórico.
   **Sem controle de prazo** (decisão: o sistema institucional da Polícia Civil já controla; o SISGEP é controle
   interno) e **sem status REMETIDO**: "Remetidos" na listagem = filtro derivado (remessa final registrada).
-  Remetido que volta para diligências = reabrir. Listagem (RF36, colega): abas em andamento/arquivados/remetidos/
+  Remetido que volta para diligências = reabrir. Remessa final (UC11, PR #28 do colega): `PATCH /procedimentos/{id}/registrar-remessa`
+  (Delegado ou Policial detentor), histórico próprio imutável `HistoricoRemessaFinal` (remessa anterior e nova,
+  responsável, `dataRegistro`) consultado em `GET /procedimentos/{id}/historico-remessa`; sobrescrita hoje
+  via `?sobrescrever=true` + 409 (ajustes pendentes da revisão, pedidos ao colega: trocar por `confirmarSobrescrita`
+  no corpo, como as outras confirmações; `UsuarioResumoResponseDto` no histórico; `strip()` do protocolo antes
+  de comparar). Listagem (RF36, colega): abas em andamento/arquivados/remetidos/
   todos com contagem, filtros tipo (vários), ano, detentor e texto (número/crime), paginada, linha indica repasse
   pendente.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
@@ -257,13 +262,18 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
   `PessoaResumoResponseDto` (sem telefone/endereço); ficha `PessoaResponseDto`; idade calculada. Busca por `nome`
   também procura na alcunha. Oitiva: `pessoaId` opcional em cada parte (`criarParte` no `OitivaService`), 404 se
   não existir. Veículos não entram nas participações (ligados ao procedimento; o grafo usa `GET /veiculos?procedimentoId=`).
-- **Outras lacunas do design (a implementar depois da apresentação)**: fotos da apreensão (front ainda não integra); busca global `GET /busca?q=` (procedimento "IP 45/2026", placa,
-  lacre, ofício; resultados agrupados); fotos da apreensão (`FotoVeiculo`: arquivo em disco/volume, não no banco;
+- **Outras lacunas do design (a implementar depois da apresentação)**: fotos da apreensão (front ainda não integra); fotos da apreensão (`FotoVeiculo`: arquivo em disco/volume, não no banco;
   só JPG/PNG até 5 MB conferindo o conteúdo real; envio Delegado/Policial, leitura todos; `POST/GET
   /veiculos/{id}/fotos`, `GET /veiculos/fotos/{id}`); alterar a própria senha `PATCH /usuarios/me/senha` (pede a
   atual). Ordem sugerida: Minha mesa + painel → ofícios → observação no repasse → senha → busca → fotos.
   Ajustes do front: tirar prazo (coluna, chips, card, "Pedir prorrogação"), "Etiqueta impressa" não é situação
   (sai do histórico) e incluir a tela de Ofícios no menu.
+- **Busca global (PR #30, pacote `search`)**: `GET /busca?q=` para a paleta Ctrl+K do front (Delegado/Policial/
+  Estagiário; termo com menos de 2 caracteres = 400). Resposta agrupada (`procedimentos`, `veiculos`, `pessoas`),
+  no máximo 10 por grupo (`Limit` do Spring Data). Procedimento pelo número ("IP 45/2026", "45/2026", "IP 45", "45";
+  tipo e ano opcionais, tipo inválido vira texto) ou por parte do crime; veículo por parte do lacre, da placa (com ou
+  sem hífen) ou do chassi; pessoa pelo CPF exato (com ou sem pontuação) ou por parte do nome/alcunha
+  (`PessoaResumoResponseDto`). Ainda diferencia acentos (ver "Melhorias futuras").
 - **Assistente de IA (colega, branch `feat/resumos-procedimentos`; docx 1.9, RF42, RNF14)**: resumo só para o
   detentor atual; dados minimizados (partes pelo papel, ex.: "Testemunha 1"; sem matrícula/login); instruções
   fixas (só os dados enviados, texto livre é dado e não instrução); conferência de datas/números citados; resposta
