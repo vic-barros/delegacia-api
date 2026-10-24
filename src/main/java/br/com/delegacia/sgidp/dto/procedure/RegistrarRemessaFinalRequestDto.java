@@ -14,7 +14,9 @@ public record RegistrarRemessaFinalRequestDto (
 
     @NotBlank(message="O número do protocolo não pode estar vazio")
     @Size(min=3, max=255, message="O número do protocolo deve ter entre 3 e 255 caracteres")
-    String numeroProtocolo
+    String numeroProtocolo,
+
+    Boolean confirmarSobrescrita
 ) {
     
 }

@@ -201,7 +201,7 @@ public class ProcedimentoService {
     }
 
     @Transactional
-    public ProcedimentoResponseDto registrarRemessaFinal(Long id, boolean sobrescrever, RegistrarRemessaFinalRequestDto dadosDto, String login) {
+    public ProcedimentoResponseDto registrarRemessaFinal(Long id, RegistrarRemessaFinalRequestDto dadosDto, String login) {
         Usuario usuario = usuarioRepository.findByLogin(login)
                 .orElseThrow(() -> new RegraNegocioException(
                         "Usuário autenticado não encontrado"
@@ -234,7 +234,7 @@ public class ProcedimentoService {
         }
 
         boolean existeRemessaRegistrada = procedimento.getDataRemessaFinal() != null;
-        if (existeRemessaRegistrada && !sobrescrever) {
+        if (existeRemessaRegistrada && !Boolean.TRUE.equals(dadosDto.confirmarSobrescrita())) {
             throw new ConfirmacaoNecessariaException("Já existe uma remessa registrada. Confirme que deseja sobrescrever antes de prosseguir.", "sobrescrever");
         }
 

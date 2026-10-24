@@ -51,8 +51,8 @@ public class ProcedimentoController {
 
     @PatchMapping("/{id}/registrar-remessa")
     @ResponseStatus(HttpStatus.OK)
-    public ProcedimentoResponseDto registrarRemessaFinal(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean sobrescrever, @RequestBody @Valid RegistrarRemessaFinalRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt ) {
-        return procedimentoService.registrarRemessaFinal(id, sobrescrever, dadosDto, jwt.getSubject());
+    public ProcedimentoResponseDto registrarRemessaFinal(@PathVariable Long id, @RequestBody @Valid RegistrarRemessaFinalRequestDto dadosDto, @AuthenticationPrincipal Jwt jwt ) {
+        return procedimentoService.registrarRemessaFinal(id, dadosDto, jwt.getSubject());
     }
 
     @GetMapping("/{id}/historico-remessa")
