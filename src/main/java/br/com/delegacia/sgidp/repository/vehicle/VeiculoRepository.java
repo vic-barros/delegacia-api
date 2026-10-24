@@ -3,6 +3,7 @@ package br.com.delegacia.sgidp.repository.vehicle;
 import br.com.delegacia.sgidp.enums.examination.StatusPericia;
 import br.com.delegacia.sgidp.enums.vehicle.SituacaoVeiculo;
 import br.com.delegacia.sgidp.model.vehicle.Veiculo;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -61,5 +62,16 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
     long countBySituacaoVeiculo(SituacaoVeiculo situacao);
 
     long countBySituacaoVeiculoAndStatusPericia(SituacaoVeiculo situacao, StatusPericia statusPericia);
+
+    // Busca global: parte do lacre, da placa ou do chassi (o service manda o termo em maiúsculas;
+    // "termoSemHifen" para a placa digitada como ABC-1D23)
+    @Query("""
+            SELECT v FROM Veiculo v JOIN FETCH v.procedimento
+            WHERE v.lacre LIKE CONCAT('%', :termo, '%')
+               OR v.placa LIKE CONCAT('%', :termoSemHifen, '%')
+               OR v.chassi LIKE CONCAT('%', :termoSemHifen, '%')
+            ORDER BY v.id DESC
+            """)
+    List<Veiculo> buscarPorIdentificador(String termo, String termoSemHifen, Limit limite);
 
 }
