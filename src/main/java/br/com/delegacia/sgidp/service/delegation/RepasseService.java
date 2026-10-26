@@ -12,6 +12,7 @@ import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.notification.TipoNotificacao;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
 import br.com.delegacia.sgidp.enums.user.StatusUsuario;
+import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
 import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.exception.RegraNegocioException;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
@@ -102,7 +103,7 @@ public class RepasseService {
         }
 
         if (!repasse.getStatusRepasse().equals(StatusRepasse.PENDENTE)) {
-            throw new RegraNegocioException("O repasse já foi respondido por outra via");
+            throw new RecursoDuplicadoException("O repasse já foi respondido. Status atual: " + repasse.getStatusRepasse());
         }
 
         repasse.aceitar();
@@ -137,7 +138,7 @@ public class RepasseService {
         }
 
         if (!repasse.getStatusRepasse().equals(StatusRepasse.PENDENTE)) {
-            throw new RegraNegocioException("O repasse já foi respondido por outra via");
+            throw new RecursoDuplicadoException("O repasse já foi respondido. Status atual: " + repasse.getStatusRepasse());
         }
 
         repasse.recusar(dto.justificativa().strip());
