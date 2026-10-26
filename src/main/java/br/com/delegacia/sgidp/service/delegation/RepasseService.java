@@ -1,4 +1,5 @@
 package br.com.delegacia.sgidp.service.delegation;
+
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ import br.com.delegacia.sgidp.service.notification.NotificacaoService;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 public class RepasseService {
     // papéis que podem solicitar/receber repasses
     private static final Set<String> PAPEIS_RESPONSAVEL = Set.of("ROLE_DELEGADO", "ROLE_POLICIAL", "ROLE_ESTAGIARIO");
@@ -37,23 +38,23 @@ public class RepasseService {
     private final NotificacaoService notificacaoService;
     private final HistoricoCustodiaRepository historicoCustodiaRepository;
 
-    @Transactional 
+    @Transactional
     public RepasseResponseDto solicitarRepasse(RepasseRequestDto dto, String login) {
         Usuario solicitante = usuarioRepository.findByLogin(login)
                 .orElseThrow(() -> new RegraNegocioException(
                         "Usuário autenticado não encontrado"
-                )); 
-        
+                ));
+
         Usuario destinatario = usuarioRepository.findById(dto.idDestinatario())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Destinatário não encontrado."
                 ));
-        
+
         Procedimento procedimento = procedimentoRepository.findById(dto.idProcedimento())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException(
-                                "Procedimento não encontrado."
-                    ));
-        
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Procedimento não encontrado."
+                ));
+
         if (procedimento.getDetentorAtual() == null || !solicitante.getId().equals(procedimento.getDetentorAtual().getId())) {
             throw new RegraNegocioException("O procedimento informado não pertence ao solicitante.");
         }
@@ -83,20 +84,20 @@ public class RepasseService {
         repasse = repasseRepository.saveAndFlush(repasse);
 
         notificacaoService.notificar(
-        destinatario,
-        TipoNotificacao.REPASSE_RECEBIDO,
-        "Você recebeu uma solicitação de repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " de " + solicitante.getNome(),
-        repasse.getId()
+                destinatario,
+                TipoNotificacao.REPASSE_RECEBIDO,
+                "Você recebeu uma solicitação de repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " de " + solicitante.getNome(),
+                repasse.getId()
         );
 
         return RepasseResponseDto.de(repasse);
     }
 
-    @Transactional 
+    @Transactional
     public RepasseResponseDto aceitar(Long id, String login) {
         Usuario usuario = usuarioRepository.findByLogin(login).orElseThrow(() -> new RegraNegocioException("Usuário autenticado não encontrado."));
-        
-        Repasse repasse = repasseRepository.findById(id).orElseThrow(()-> new RecursoNaoEncontradoException("Solicitação de repasse não encontrada."));
+
+        Repasse repasse = repasseRepository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação de repasse não encontrada."));
 
         if (!usuario.getId().equals(repasse.getDestinatario().getId())) {
             throw new RegraNegocioException("Você não é o destinatário dessa solicitação de repasse.");
@@ -108,7 +109,9 @@ public class RepasseService {
 
         repasse.aceitar();
 
-        notificacaoService.apagar(Set.of(TipoNotificacao.REPASSE_RECEBIDO), repasse.getId());
+        // Assunto resolvido: o aviso do destinatário fica como lido (padrão do aprovar/rejeitar cadastro)
+        notificacaoService.marcarComoLidas(TipoNotificacao.REPASSE_RECEBIDO,
+                repasse.getId());
 
 
         Procedimento procedimento = repasse.getProcedimento();
@@ -120,21 +123,21 @@ public class RepasseService {
         historicoCustodiaRepository.save(novaCustodia);
 
         notificacaoService.notificar(
-            repasse.getSolicitante(), 
-            TipoNotificacao.REPASSE_ACEITO,
-            "O repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " foi aceito por " + usuario.getNome() + ".",
-            repasse.getId()
-        
+                repasse.getSolicitante(),
+                TipoNotificacao.REPASSE_ACEITO,
+                "O repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " foi aceito por " + usuario.getNome() + ".",
+                repasse.getId()
+
         );
 
         return RepasseResponseDto.de(repasse);
     }
 
-    @Transactional 
+    @Transactional
     public RepasseResponseDto recusar(Long id, RecusarRepasseRequestDto dto, String login) {
         Usuario usuario = usuarioRepository.findByLogin(login).orElseThrow(() -> new RegraNegocioException("Usuário autenticado não encontrado."));
-        
-        Repasse repasse = repasseRepository.findById(id).orElseThrow(()-> new RecursoNaoEncontradoException("Solicitação de repasse não encontrada."));
+
+        Repasse repasse = repasseRepository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação de repasse não encontrada."));
 
         if (!usuario.getId().equals(repasse.getDestinatario().getId())) {
             throw new RegraNegocioException("Você não é o destinatário dessa solicitação de repasse.");
@@ -146,16 +149,17 @@ public class RepasseService {
 
         repasse.recusar(dto.justificativa().strip());
 
-        notificacaoService.apagar(Set.of(TipoNotificacao.REPASSE_RECUSADO), repasse.getId());
+        notificacaoService.marcarComoLidas(TipoNotificacao.REPASSE_RECEBIDO,
+                repasse.getId());
 
         Procedimento procedimento = repasse.getProcedimento();
 
         notificacaoService.notificar(
-            repasse.getSolicitante(), 
-            TipoNotificacao.REPASSE_RECUSADO,
-            "O repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " foi recusado por " + usuario.getNome() + " com a seguinte justificativa: " + dto.justificativa().strip(),
-            repasse.getId()
-        
+                repasse.getSolicitante(),
+                TipoNotificacao.REPASSE_RECUSADO,
+                "O repasse do procedimento " + procedimento.getTipoProcedimento() + " " + procedimento.getNumeroProcedimento() + "/" + procedimento.getAnoProcedimento() + " foi recusado por " + usuario.getNome() + " com a seguinte justificativa: " + dto.justificativa().strip(),
+                repasse.getId()
+
         );
 
         return RepasseResponseDto.de(repasse);

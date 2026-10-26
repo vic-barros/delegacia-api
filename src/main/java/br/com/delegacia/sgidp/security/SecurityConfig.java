@@ -57,35 +57,46 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/usuarios/cadastro").permitAll()
                         .requestMatchers(HttpMethod.GET, "/roles/cadastro").permitAll()
                         .requestMatchers("/error").permitAll()
+
                         // Lista para os seletores (destinatário, responsável, detentor): vem antes da regra geral
                         .requestMatchers(HttpMethod.GET, "/usuarios/operacionais").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
                         // Gestão de usuarios: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
-                        // gestão de procedimentos
+
+                        // Gestão de procedimentos
                         .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
-                        .requestMatchers(HttpMethod.GET, "/procedimentos/{id}/historico-remessa").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/arquivar").hasAnyRole("DELEGADO", "POLICIAL")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/registrar-remessa").hasAnyRole("DELEGADO", "POLICIAL")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/reabrir").hasAnyRole("DELEGADO", "POLICIAL")
-                        // Exportação de Procedimento: Só Delegado e Policial
+
+                        // Exportação de procedimentos: só Delegado e Policial (antes da regra geral de GET abaixo)
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
-                        // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
-                        .requestMatchers(HttpMethod.GET).hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
-                        .requestMatchers(HttpMethod.PATCH, "/repasses/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
-                        // Consulta de procedimentos (detalhe e históricos): servidores, inclusive Estagiário.
+
+                        // Consulta de procedimentos (listagem, detalhe e históricos): servidores, inclusive Estagiário
+                        .requestMatchers(HttpMethod.GET, "/procedimentos/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
+                        // Repasse de custódia: Delegado, Policial e Estagiário (solicitar, aceitar e recusar)
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        .requestMatchers(HttpMethod.PATCH, "/repasses/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
                         // Exportação de veículos (relatório de carga): só Delegado/Policial. Antes da regra de GET
                         // abaixo, porque o Spring usa a primeira regra que combina com a rota
                         .requestMatchers(HttpMethod.GET, "/veiculos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
+
                         // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
                         .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
                         .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
+
                         // Oitivas: Delegado, Policial e Estagiário
                         .requestMatchers("/oitivas/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
                         // Pessoas: Delegado, Policial e Estagiário (os mesmos das oitivas)
                         .requestMatchers("/pessoas/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
                         // Painel e Minha mesa: Delegado, Policial e Estagiário (cada um vê os próprios dados)
                         .requestMatchers(HttpMethod.GET, "/painel/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
                         // Busca global (Ctrl+K): servidores; o Admin não acessa procedimentos, veículos nem pessoas
                         .requestMatchers(HttpMethod.GET, "/busca").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .anyRequest().authenticated())
