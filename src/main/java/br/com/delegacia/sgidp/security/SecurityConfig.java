@@ -64,13 +64,27 @@ public class SecurityConfig {
                         // Gestão de usuarios: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
+<<<<<<< HEAD
+                        // Gestão de procedimentos
+=======
                         // gestão de procedimentos
+>>>>>>> 180cf9db025083514a7fa27c1ec5f8c32b4ab189
                         .requestMatchers(HttpMethod.POST, "/procedimentos").hasAnyRole("DELEGADO", "POLICIAL")
-                        .requestMatchers(HttpMethod.GET, "/procedimentos/{id}/historico-remessa").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/arquivar").hasAnyRole("DELEGADO", "POLICIAL")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/registrar-remessa").hasAnyRole("DELEGADO", "POLICIAL")
                         .requestMatchers(HttpMethod.PATCH, "/procedimentos/{id}/reabrir").hasAnyRole("DELEGADO", "POLICIAL")
 
+<<<<<<< HEAD
+                        // Exportação de procedimentos: só Delegado e Policial (antes da regra geral de GET abaixo)
+                        .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
+
+                        // Consulta de procedimentos (listagem, detalhe e históricos): servidores, inclusive Estagiário
+                        .requestMatchers(HttpMethod.GET, "/procedimentos/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
+                        // Repasse de custódia: Delegado, Policial e Estagiário (solicitar, aceitar e recusar)
+                        .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        .requestMatchers(HttpMethod.PATCH, "/repasses/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+=======
                         // Exportação de Procedimento: Só Delegado e Policial
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
 
@@ -79,6 +93,7 @@ public class SecurityConfig {
 
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+>>>>>>> 180cf9db025083514a7fa27c1ec5f8c32b4ab189
 
                         // Exportação de veículos (relatório de carga): só Delegado/Policial. Antes da regra de GET
                         // abaixo, porque o Spring usa a primeira regra que combina com a rota
