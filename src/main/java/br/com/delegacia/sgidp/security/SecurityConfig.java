@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/procedimentos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
                         // Repasse de custódia: Delegado, Policial e Estagiário (detentor atual)
                         .requestMatchers(HttpMethod.GET).hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+                        .requestMatchers(HttpMethod.PATCH, "/repasses/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Consulta de procedimentos (detalhe e históricos): servidores, inclusive Estagiário.
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         // Exportação de veículos (relatório de carga): só Delegado/Policial. Antes da regra de GET

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 
 public interface HistoricoCustodiaRepository
@@ -25,4 +26,6 @@ public interface HistoricoCustodiaRepository
     // Detalhe do procedimento: todas as posses, da mais antiga para a atual, com o usuário na mesma consulta
     @EntityGraph(attributePaths = "usuario")
     List<HistoricoCustodia> findByProcedimentoIdOrderByDataInicioAsc(Long procedimentoId);
+
+    Optional<HistoricoCustodia> findByProcedimentoIdAndDataFimIsNull(Long procedimentoId);
 }
