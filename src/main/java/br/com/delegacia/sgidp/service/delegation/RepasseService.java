@@ -108,6 +108,9 @@ public class RepasseService {
 
         repasse.aceitar();
 
+        notificacaoService.apagar(Set.of(TipoNotificacao.REPASSE_RECEBIDO), repasse.getId());
+
+
         Procedimento procedimento = repasse.getProcedimento();
         procedimento.setDetentorAtual(usuario);
 
@@ -142,6 +145,8 @@ public class RepasseService {
         }
 
         repasse.recusar(dto.justificativa().strip());
+
+        notificacaoService.apagar(Set.of(TipoNotificacao.REPASSE_RECUSADO), repasse.getId());
 
         Procedimento procedimento = repasse.getProcedimento();
 
