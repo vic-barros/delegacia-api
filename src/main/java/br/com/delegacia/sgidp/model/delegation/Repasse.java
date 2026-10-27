@@ -30,6 +30,9 @@ public class Repasse {
     @Column(name = "status", nullable = false)
     private StatusRepasse statusRepasse = StatusRepasse.PENDENTE; //status repasse inicia como pendente
 
+    @Column(name = "observacao", length = 500, updatable = false)
+    private String observacao;
+
     @Column(name = "justificativa_recusa", length = 500)
     private String justificativaRecusa;
 

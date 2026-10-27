@@ -81,6 +81,10 @@ public class RepasseService {
         repasse.setProcedimento(procedimento);
         repasse.setSolicitante(solicitante);
         repasse.setDestinatario(destinatario);
+        // Observação em branco vira nula (o front pode mandar "")
+        if (dto.observacao() != null && !dto.observacao().isBlank()) {
+            repasse.setObservacao(dto.observacao().trim());
+        }
         repasse = repasseRepository.saveAndFlush(repasse);
 
         notificacaoService.notificar(
