@@ -31,12 +31,12 @@ public interface ProcedimentoRepository
             SELECT p FROM Procedimento p
             WHERE (CAST(:dataInicio AS LocalDate) IS NULL OR p.dataAbertura >= :dataInicio)
               AND (CAST(:dataFim AS LocalDate) IS NULL OR p.dataAbertura <= :dataFim)
-              AND (:tipo IS NULL OR p.tipoProcedimento = :tipo)
+              AND (p.tipoProcedimento IN :tipos)
               AND (:status IS NULL OR p.statusProcedimento = :status)
             ORDER BY p.anoProcedimento, p.tipoProcedimento, p.numeroProcedimento
             """)
     List<Procedimento> buscarParaExportacao(LocalDate dataInicio, LocalDate dataFim,
-                                            TipoProcedimento tipo,
+                                            Collection<TipoProcedimento> tipos,
                                             StatusProcedimento status);
 
     // Listagem (T06): a aba vira status (nulo = todos) e/ou "só remetidos"; tipos em lista (o service manda
