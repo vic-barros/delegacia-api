@@ -18,7 +18,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 // Os arquivos em si são montados em ProcedimentoXlsxService e ProcedimentoPdfService, aqui são as regras de negócio
 @Service
@@ -36,12 +39,18 @@ public class ExportacaoProcedimentoService {
 
     @Transactional(readOnly = true)
     public ArquivoExportadoResponseDto exportar(FormatoExportacao formato, LocalDate dataInicio, LocalDate dataFim,
-                                                TipoProcedimento tipo, StatusProcedimento status, String login) {
+                                                List<TipoProcedimento> tipos, StatusProcedimento status, String login) {
         if (dataInicio != null && dataFim != null && dataInicio.isAfter(dataFim)) {
             throw new RegraNegocioException("A data inicial não pode ser posterior à data final.");
         }
 
-        List<Procedimento> procedimentos = procedimentoRepository.buscarParaExportacao(dataInicio, dataFim, tipo, status);
+        // Sem tipo = todos (o IN da consulta não aceita lista vazia); EnumSet também descarta tipo repetido
+        Set<TipoProcedimento> tiposFiltro = tipos == null || tipos.isEmpty()
+                ? EnumSet.allOf(TipoProcedimento.class)
+                : EnumSet.copyOf(tipos);
+
+        List<Procedimento> procedimentos = procedimentoRepository.buscarParaExportacao(dataInicio, dataFim,
+                tiposFiltro, status);
 
         if (procedimentos.isEmpty()) {
             throw new RecursoNaoEncontradoException("Nenhum procedimento encontrado com os filtros informados.");
@@ -52,7 +61,7 @@ public class ExportacaoProcedimentoService {
 
         // Cabeçalho do relatório: filtros usados e quem gerou, quando e quantos registros
         LocalDateTime agora = LocalDateTime.now();
-        String filtros = "Filtros: " + descreverFiltros(dataInicio, dataFim, tipo, status);
+        String filtros = "Filtros: " + descreverFiltros(dataInicio, dataFim, tiposFiltro, status);
         String geracao = "Gerado em " + agora.format(FORMATO_DATA_HORA) + " por " + usuario.getNome()
                 + " | Total: " + procedimentos.size() + " procedimento(s)";
 
@@ -66,7 +75,8 @@ public class ExportacaoProcedimentoService {
     }
 
     // Ex.: "abertura de 01/01/2025 a 31/12/2025; tipo Inquérito Policial (IP); status Em Andamento"
-    private String descreverFiltros(LocalDate dataInicio, LocalDate dataFim, TipoProcedimento tipo,
+    // ou, com mais de um tipo, "tipos IP, APF"
+    private String descreverFiltros(LocalDate dataInicio, LocalDate dataFim, Set<TipoProcedimento> tipos,
                                     StatusProcedimento status) {
         List<String> partes = new ArrayList<>();
         if (dataInicio != null && dataFim != null) {
@@ -76,8 +86,11 @@ public class ExportacaoProcedimentoService {
         } else if (dataFim != null) {
             partes.add("abertura até " + dataFim.format(FORMATO_DATA));
         }
-        if (tipo != null) {
+        if (tipos.size() == 1) {
+            TipoProcedimento tipo = tipos.iterator().next();
             partes.add("tipo " + tipo.getDescricao() + " (" + tipo.name() + ")");
+        } else if (tipos.size() < TipoProcedimento.values().length) {
+            partes.add("tipos " + tipos.stream().map(TipoProcedimento::name).collect(Collectors.joining(", ")));
         }
         if (status != null) {
             partes.add("status " + status.getDescricao());

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 // Separado do ProcedimentoController para não conflitar com as rotas de procedimento em desenvolvimento
 @RestController
@@ -27,13 +28,14 @@ public class ExportacaoProcedimentoController {
 
     private final ExportacaoProcedimentoService exportacaoProcedimentoService;
 
-    // "attachment" faz o navegador baixar o arquivo (a etiqueta usa "inline" para abrir na tela)
+    // "attachment" faz o navegador baixar o arquivo (a etiqueta usa "inline" para abrir na tela).
+    // "tipo" pode repetir: ?tipo=IP&tipo=APF; sem nenhum = todos
     @GetMapping("/exportar")
     public ResponseEntity<byte[]> exportar(
             @RequestParam FormatoExportacao formato,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
-            @RequestParam(required = false) TipoProcedimento tipo,
+            @RequestParam(required = false) List<TipoProcedimento> tipo,
             @RequestParam(required = false) StatusProcedimento status,
             @AuthenticationPrincipal Jwt jwt) {
         ArquivoExportadoResponseDto arquivo = exportacaoProcedimentoService.exportar(formato, dataInicio, dataFim,
