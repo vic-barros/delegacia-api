@@ -211,7 +211,7 @@ public class ProcedimentoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Procedimento não encontrado"
                 ));
-        
+
         boolean delegado = "ROLE_DELEGADO".equals(usuario.getRole().getAcesso());
         boolean detentor = procedimento.getDetentorAtual() != null
                 && usuario.getId().equals(procedimento.getDetentorAtual().getId());
@@ -235,7 +235,7 @@ public class ProcedimentoService {
 
         boolean existeRemessaRegistrada = procedimento.getDataRemessaFinal() != null;
         if (existeRemessaRegistrada && !Boolean.TRUE.equals(dadosDto.confirmarSobrescrita())) {
-            throw new ConfirmacaoNecessariaException("Já existe uma remessa registrada. Confirme que deseja sobrescrever antes de prosseguir.", "sobrescrever");
+            throw new ConfirmacaoNecessariaException("Já existe uma remessa registrada. Confirme que deseja sobrescrever antes de prosseguir.", "confirmarSobrescrita");
         }
 
         LocalDate dataAnterior = procedimento.getDataRemessaFinal();
