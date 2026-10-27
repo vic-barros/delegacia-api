@@ -77,6 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/procedimentos/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
 
                         // Repasse de custódia: Delegado, Policial e Estagiário (solicitar, aceitar e recusar)
+                        .requestMatchers(HttpMethod.GET, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .requestMatchers(HttpMethod.POST, "/repasses").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .requestMatchers(HttpMethod.PATCH, "/repasses/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
 
