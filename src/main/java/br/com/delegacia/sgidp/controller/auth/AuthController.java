@@ -26,9 +26,9 @@ public class AuthController {
         return authService.login(dados);
     }
 
-    // Rota protegida: devolve quem está logado, lendo direto do token (sem consultar o banco)
+    // Rota protegida: devolve quem está logado (o login vem do token; o resto, do banco)
     @GetMapping("/usuario-logado")
     public UsuarioLogadoResponseDto usuarioLogado(@AuthenticationPrincipal Jwt jwt) {
-        return new UsuarioLogadoResponseDto(jwt.getSubject(), jwt.getClaimAsString("nome"), jwt.getClaimAsString("role"));
+        return authService.buscarUsuarioLogado(jwt.getSubject());
     }
 }

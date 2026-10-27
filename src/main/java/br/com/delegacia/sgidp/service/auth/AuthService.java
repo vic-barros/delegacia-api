@@ -2,8 +2,10 @@ package br.com.delegacia.sgidp.service.auth;
 
 import br.com.delegacia.sgidp.dto.auth.LoginRequestDto;
 import br.com.delegacia.sgidp.dto.auth.TokenResponseDto;
+import br.com.delegacia.sgidp.dto.auth.UsuarioLogadoResponseDto;
 import br.com.delegacia.sgidp.exception.CadastroNaoAprovadoException;
 import br.com.delegacia.sgidp.exception.CredenciaisInvalidasException;
+import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
 import br.com.delegacia.sgidp.model.user.Usuario;
 import br.com.delegacia.sgidp.repository.user.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +42,13 @@ public class AuthService {
         }
 
         return new TokenResponseDto(tokenService.gerar(usuario));
+    }
+
+    // O token só tem login, nome e papel; id e matrícula vêm do banco
+    @Transactional(readOnly = true)
+    public UsuarioLogadoResponseDto buscarUsuarioLogado(String login) {
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
+        return UsuarioLogadoResponseDto.de(usuario);
     }
 }
