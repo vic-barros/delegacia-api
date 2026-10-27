@@ -65,6 +65,11 @@ public class PessoaService {
         if (cpf != null && pessoaRepository.existsByCpfAndIdNot(cpf, id)) {
             throw new RecursoDuplicadoException("Já existe uma pessoa cadastrada com este CPF");
         }
+
+        // A ficha devolve o CPF mascarado, então o front não tem como reenviá-lo: CPF ausente mantém o gravado
+        if (cpf == null) {
+            cpf = pessoa.getCpf();
+        }
         preencher(pessoa, dados, cpf);
         return PessoaResponseDto.de(pessoa);
     }

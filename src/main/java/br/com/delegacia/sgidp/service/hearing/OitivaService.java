@@ -69,7 +69,7 @@ public class OitivaService {
         for (OitivaParteRequestDto parte : dados.partes()) {
             oitiva.adicionarParte(criarParte(parte));
         }
-        oitivaRepository.save(oitiva);
+        oitivaRepository.saveAndFlush(oitiva);
 
         oitivaNotificacaoService.avisarAtribuicao(oitiva, usuarioLogado);
 

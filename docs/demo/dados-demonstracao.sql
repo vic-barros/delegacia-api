@@ -97,7 +97,7 @@ BEGIN
     rp6 := nextval('seq_repasse'); INSERT INTO repasse (id, data_resposta, data_solicitacao, justificativa_recusa, status, destinatario_id, procedimento_id, solicitante_id) VALUES (rp6, hoje - interval '3 days' + time '16:00', hoje - interval '3 days' + time '10:00',
         'Estou de férias a partir da próxima semana', 'RECUSADO', u_ma, p6, u_vb);
     rp4 := nextval('seq_repasse'); INSERT INTO repasse (id, data_resposta, data_solicitacao, justificativa_recusa, status, destinatario_id, procedimento_id, solicitante_id) VALUES (rp4, NULL, agora - interval '30 minutes', NULL, 'PENDENTE', u_al, p4, u_vb);
-    rp7 := nextval('seq_repasse'); INSERT INTO repasse (id, data_resposta, data_solicitacao, justificativa_recusa, status, destinatario_id, procedimento_id, solicitante_id) VALUES (rp7, NULL, agora - interval '2 hours',    NULL, 'PENDENTE', u_vb, p7, u_ma);
+    rp7 := nextval('seq_repasse'); INSERT INTO repasse (id, data_resposta, data_solicitacao, justificativa_recusa, status, destinatario_id, procedimento_id, solicitante_id, observacao) VALUES (rp7, NULL, agora - interval '2 hours',    NULL, 'PENDENTE', u_vb, p7, u_ma, 'Falta ouvir a testemunha, segue para você conduzir.');
     rp8 := nextval('seq_repasse'); INSERT INTO repasse (id, data_resposta, data_solicitacao, justificativa_recusa, status, destinatario_id, procedimento_id, solicitante_id) VALUES (rp8, NULL, agora - interval '1 day',      NULL, 'PENDENTE', u_vb, p8, u_ci);
 
     -- ---------- custódia ----------

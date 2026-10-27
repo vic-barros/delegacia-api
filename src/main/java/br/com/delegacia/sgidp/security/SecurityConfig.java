@@ -86,7 +86,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/veiculos/exportar").hasAnyRole("DELEGADO", "POLICIAL")
 
                         // Veículos: consulta para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial
-                        .requestMatchers(HttpMethod.GET, "/veiculos/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .requestMatchers("/veiculos/**").hasAnyRole("DELEGADO", "POLICIAL")
 
                         // Oitivas: Delegado, Policial e Estagiário
