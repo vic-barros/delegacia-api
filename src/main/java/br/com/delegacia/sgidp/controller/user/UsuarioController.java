@@ -83,5 +83,14 @@ public class UsuarioController {
         usuarioService.redefinirSenha(id, dados);
     }
 
+    // Qualquer usuário logado troca a própria senha. "/me/senha" convive com "/{id}/senha":
+    // o Spring prefere o caminho literal ao com variável
+    @PatchMapping("/me/senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void alterarPropriaSenha(@RequestBody @Valid UsuarioAlteracaoSenhaRequestDto dados,
+                                    @AuthenticationPrincipal Jwt jwt) {
+        usuarioService.alterarPropriaSenha(jwt.getSubject(), dados);
+    }
+
 
 }

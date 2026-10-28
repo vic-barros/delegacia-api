@@ -185,6 +185,22 @@ public class UsuarioService {
         usuario.setSenhaHash(passwordEncoder.encode(dto.novaSenha()));
     }
 
+    // Trocar a própria senha: o login vem do token; a senha atual é conferida com o hash (BCrypt)
+    @Transactional
+    public void alterarPropriaSenha(String login, UsuarioAlteracaoSenhaRequestDto dto) {
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(dto.senhaAtual(), usuario.getSenhaHash())) {
+            throw new RegraNegocioException("A senha atual está incorreta");
+        }
+        if (passwordEncoder.matches(dto.novaSenha(), usuario.getSenhaHash())) {
+            throw new RegraNegocioException("A nova senha deve ser diferente da atual");
+        }
+
+        usuario.setSenhaHash(passwordEncoder.encode(dto.novaSenha()));
+    }
+
 
     private Usuario buscarUsuario(Long id) {
         return usuarioRepository.findById(id)
