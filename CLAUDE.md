@@ -4,8 +4,8 @@ API REST em Spring Boot para controle de oitivas, custódia de procedimentos pol
 Projeto acadêmico/portfólio (IFS, Inovathon, equipe Delegacia 4.0: Laíssa Victória Barros (líder), Elton Ramon
 Alves Santos, Erick Marques Santos Bomfim, Hebert Ruan do Nascimento Feitosa, João Pedro da Silva Carvalho).
 Front-end: https://github.com/jaopzj/sisgep-frontend. Dados de demonstração: `docs/demo/dados-demonstracao.sql`
-(fictícios, datas relativas ao dia, login `vbarros`/`Demo@2026`; apaga os dados anteriores menos roles e Admin). Reescrita da v1 (Java puro + JDBC) com arquitetura em camadas.
-Nome anterior: SGI-DP. O pacote Java (`br.com.delegacia.sgidp`), a classe `SgiDpApplication` e o `artifactId` mantêm
+(fictícios, datas relativas ao dia, login `vbarros`/`Demo@2026`; apaga os dados anteriores menos roles e Admin).
+Nome provisório do projeto: SGI-DP. O pacote Java (`br.com.delegacia.sgidp`), a classe `SgiDpApplication` e o `artifactId` mantêm
 o nome antigo de propósito: renomear mexe em todos os arquivos e conflita com as branches abertas (fazer, se for o
 caso, depois da apresentação, com tudo mergeado, num PR único via refactor da IDE). Logo: `docs/img/logo-sisgep.jpg`.
 
@@ -63,7 +63,9 @@ caso, depois da apresentação, com tudo mergeado, num PR único via refactor da
   `Content-Type`). `TokenService.gerar(usuario)`: claims `sub` (login), `nome`, `role`, validade 8h.
   `AuthService.login` (opção A, sem `UserDetailsService`): `findByLogin` → `passwordEncoder.matches` → status
   APROVADO, senão `CredenciaisInvalidasException` (401, mensagem genérica) ou `CadastroNaoAprovadoException` (403).
-  Rotas: `POST /auth/login`, `GET /auth/usuario-logado` (lê do token via `@AuthenticationPrincipal Jwt`).
+  Rotas: `POST /auth/login`, `GET /auth/usuario-logado` (login do token via `@AuthenticationPrincipal Jwt`; id,
+  nome, matrícula e papel do banco em `AuthService.buscarUsuarioLogado`), `PATCH /usuarios/me/senha` (qualquer logado,
+  confere a senha atual com BCrypt; nova de 8 a 72 e diferente da atual; 204).
   Evolução futura possível: `UserDetailsService` + `AuthenticationManager` trocando só o miolo do `AuthService`.
 - Pacotes: camadas `model`, `enums`, `repository` (interfaces estendendo `JpaRepository` direto, sem interface base),
   `dto` (records com sufixo `RequestDto`/`ResponseDto`), `service`, `controller`, cada uma dividida em subpacotes
@@ -71,7 +73,9 @@ caso, depois da apresentação, com tudo mergeado, num PR único via refactor da
   (oitiva), `party`, `vehicle`, `examination` (perícia), `notification`, `export` (peças comuns das exportações:
   `enums/export/FormatoExportacao`, `dto/export/ArquivoExportadoResponseDto`). Ex.: `service/user/UsuarioService`,
   `model/delegation/Repasse`. Fora das camadas: `security` (SecurityConfig, TokenService), `exception` (exceções
-  genéricas `RegraNegocioException` 400, `RecursoNaoEncontradoException` 404, `RecursoDuplicadoException` 409 +
+  genéricas `RegraNegocioException` 400, `AcessoNegadoException` 403 (logado e com o papel certo, mas sem permissão
+  sobre o registro: não é o detentor nem Delegado, não é o destinatário), `RecursoNaoEncontradoException` 404,
+  `RecursoDuplicadoException` 409 +
   `GlobalExceptionHandler`), `config` (DadosIniciais). `AuthService` fica em `service/auth`.
 - Injeção por construtor com `@RequiredArgsConstructor` (campos `final`); não usar `@Autowired`. `@Value` do Spring
   (`org.springframework.beans.factory.annotation.Value`, não o do Lombok) só para configuração.
@@ -131,31 +135,36 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
 - **Senha**: não há recuperação self-service; o Admin redefine com senha provisória (RF05/UC14).
 - **Procedimento**: numeração reinicia por tipo e ano, por isso a unicidade é (tipo, numero, ano).
   Cadastro em `POST /procedimentos` (Delegado/Policial).
-  Arquivar (`PATCH /procedimentos/{id}/arquivar`, PR #25 do colega com correção sugerida): Delegado arquiva
-  qualquer procedimento; Policial só o que detém (sem distinção de Delegado titular no MVP).
+  Arquivar (`PATCH /procedimentos/{id}/arquivar`), reabrir e registrar remessa: Delegado age em qualquer
+  procedimento; Policial só no que detém (sem distinção de Delegado titular no MVP); fora disso, 403.
   Arquivar exige que não haja repasse PENDENTE nem oitiva AGENDADA (400 listando as datas: "conclua as já
   realizadas e desmarque as demais"; consulta pronta em `OitivaRepository.findByProcedimentoIdAndStatusOitivaOrderByDataHoraAsc`);
   procedimento arquivado não aceita repasse nem oitiva; reabertura volta para EM_ANDAMENTO com motivo livre e
   registro em histórico.
   **Sem controle de prazo** (decisão: o sistema institucional da Polícia Civil já controla; o SISGEP é controle
   interno) e **sem status REMETIDO**: "Remetidos" na listagem = filtro derivado (remessa final registrada).
-  Remetido que volta para diligências = reabrir. Remessa final (UC11, PR #28 do colega): `PATCH /procedimentos/{id}/registrar-remessa`
-  (Delegado ou Policial detentor), histórico próprio imutável `HistoricoRemessaFinal` (remessa anterior e nova,
-  responsável, `dataRegistro`) consultado em `GET /procedimentos/{id}/historico-remessa`; sobrescrita hoje
-  via `?sobrescrever=true` + 409 (ajustes pendentes da revisão, pedidos ao colega: trocar por `confirmarSobrescrita`
-  no corpo, como as outras confirmações; `UsuarioResumoResponseDto` no histórico; `strip()` do protocolo antes
-  de comparar). Listagem (RF36, colega): abas em andamento/arquivados/remetidos/
-  todos com contagem, filtros tipo (vários), ano, detentor e texto (número/crime), paginada, linha indica repasse
-  pendente.
+  Remetido que volta para diligências = reabrir. Remessa final (UC11): `PATCH /procedimentos/{id}/registrar-remessa`
+  `{data, numeroProtocolo, confirmarSobrescrita}` (Delegado ou Policial detentor), histórico próprio imutável
+  `HistoricoRemessaFinal` (remessa anterior e nova, responsável, `dataRegistro`) em
+  `GET /procedimentos/{id}/historico-remessa`; substituir uma remessa registrada pede `confirmarSobrescrita` (409).
+  Listagem (RF36, `ListagemProcedimentoController`): `GET /procedimentos?aba=&tipo=&ano=&detentorId=&texto=&dataInicio=
+  &dataFim=&ordem=&pagina=&tamanho=`; abas em andamento/arquivados/remetidos/todos com contagem (com os mesmos
+  filtros), tipo repetível, período de abertura (os mesmos nomes e regras da exportação), `ordem` só com valores
+  conhecidos (`abertura`, `-abertura` padrão, `procedimento`, `-procedimento`; o texto nunca vira campo do `Sort`),
+  id como desempate; cada item indica repasse pendente e `naPosseDesde` (início da custódia aberta, uma consulta
+  por página). Detalhe: `GET /procedimentos/{id}` (+ repasse pendente), `/historico-custodia`, `/historico-status`.
 - **Repasse**: fluxo pendente -> aceito/recusado; só no aceite a custódia muda. No aceite, no mesmo
   `@Transactional`: `repasse.aceitar()`, `custodiaAtual.encerrar()`, novo `HistoricoCustodia(..., REPASSE, repasse)`
   e `procedimento.setDetentorAtual(destinatario)`.
-  Solicitação pronta (UC08): `POST /repasses` `{idDestinatario, idProcedimento}` (Delegado/Policial/Estagiário),
-  só o detentor atual solicita; destinatário Delegado/Policial/Estagiário APROVADO e diferente do solicitante;
+  Solicitação (UC08): `POST /repasses` `{idDestinatario, idProcedimento, observacao}` (Delegado/Policial/Estagiário;
+  `observacao` opcional até 500, em branco vira nula, `updatable = false`), só o detentor atual solicita (senão 403); destinatário Delegado/Policial/Estagiário APROVADO e diferente do solicitante;
   procedimento ARQUIVADO ou com repasse PENDENTE recusa (400); ids inexistentes 404. Notifica o destinatário
   (REPASSE_RECEBIDO, "procedimento IP 123/2026 de Fulano"). `saveAndFlush` para a `dataSolicitacao` vir preenchida.
-  Pendentes (colega): aceitar/recusar (UC09) com REPASSE_ACEITO/RECUSADO e listagem (recebidos, enviados,
-  histórico). A implementar: `observacao` opcional (500) no `POST /repasses` e na resposta (tela de repasses).
+  Resposta (UC09): `PATCH /repasses/{id}/aceitar` e `/recusar` `{justificativa}` (3 a 500): só o destinatário (403),
+  só PENDENTE (409); notifica REPASSE_ACEITO/RECUSADO e marca o REPASSE_RECEBIDO como lido.
+  Listagem (`ListagemRepasseController`): `GET /repasses?aba=RECEBIDOS|ENVIADOS|HISTORICO&texto=&pagina=&tamanho=`,
+  só os repasses do usuário logado (destinatário e/ou solicitante conforme a aba); resposta com
+  `recebidosPendentes`/`enviadosPendentes` para as abas.
 - **Oitiva**: Delegado, Policial e Estagiário agendam, editam, remarcam, desmarcam e concluem (o Estagiário conduz
   oitivas sob supervisão e agenda para os policiais); Admin não acessa. Responsável: Delegado, Policial ou
   Estagiário APROVADO. Procedimento ARQUIVADO não aceita oitiva (400 "Procedimento arquivado. É necessário
@@ -198,7 +207,7 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
   PDFBox. QR = `ETIQUETA_URL_BASE` + `/veiculos/lacre/{lacre}` (tela do front, exige login; o QR não carrega dados).
   Conteúdo: unidade (`ETIQUETA_UNIDADE`, opcional), lacre, tipo/marca/modelo, cor, placa (se houver),
   procedimento, data de entrada (primeira linha do histórico) e data/hora da impressão; sem nomes de pessoas.
-  Qualquer logado pode gerar (regra de GET de `/veiculos/**`). Acentos no `.env` em `\uXXXX` (o arquivo é lido
+  Delegado, Policial e Estagiário podem gerar (regra de GET de `/veiculos/**`). Acentos no `.env` em `\uXXXX` (o arquivo é lido
   como `.properties`).
 - **Situação do veículo**: começa em NA_DEPOL. EM_PATIO = em pátio, que pode ser de outro órgão ou de uso da
   delegacia (ex.: pátio da prefeitura); por isso a carga continua NA_DEPOL + EM_PATIO e quem quiser só a DEPOL filtra. Transições **não são bloqueadas** por decisão de projeto
@@ -207,7 +216,7 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
   Nova situação igual à atual é rejeitada.
 - **Veículos (contrato)**: rotas `POST /veiculos`, `GET /veiculos[?lacre&placa&chassi&motor&situacao&procedimentoId]`,
   `GET /veiculos/{id}`, `GET /veiculos/{id}/historico`, `PUT /veiculos/{id}`, `PATCH /veiculos/{id}/situacao`.
-  GET para qualquer logado (inclusive Estagiário); escrita só Delegado/Policial. **Procedimento ARQUIVADO aceita
+  GET para Delegado, Policial e Estagiário (Admin 403); escrita só Delegado/Policial. **Procedimento ARQUIVADO aceita
   veículo** (diferente de oitiva: o arquivamento encerra as diligências, não a destinação do veículo).
   Confirmações via flag no corpo + 409 (`ConfirmacaoNecessariaException`, nome da flag em `detalhes`):
   `confirmarDuplicidade` (placa, chassi ou motor de veículo ativo NA_DEPOL/EM_PATIO; os três normalizados trim +
@@ -258,14 +267,16 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
   front chama `POST /repasses` uma vez por procedimento e mostra o resultado de cada um.
 - **Pessoas (RF43, UC36, PR `feature/pessoas`)**: `POST/GET /pessoas[?nome=&cpf=]`, `GET/PUT /pessoas/{id}`,
   `GET /pessoas/{id}/participacoes` (Delegado/Policial/Estagiário). `@CPF` (Hibernate Validator) + normalização
-  só dígitos; CPF repetido 409; construtor compacto do record transforma "" em nulo. Busca devolve
+  só dígitos; CPF repetido 409; construtor compacto do record transforma "" em nulo; no PUT,
+  CPF ausente ou vazio mantém o gravado (a ficha devolve o CPF mascarado; ainda não há como remover). Busca devolve
   `PessoaResumoResponseDto` (sem telefone/endereço); ficha `PessoaResponseDto`; idade calculada. Busca por `nome`
   também procura na alcunha. Oitiva: `pessoaId` opcional em cada parte (`criarParte` no `OitivaService`), 404 se
   não existir. Veículos não entram nas participações (ligados ao procedimento; o grafo usa `GET /veiculos?procedimentoId=`).
-- **Outras lacunas do design (a implementar depois da apresentação)**: fotos da apreensão (front ainda não integra); fotos da apreensão (`FotoVeiculo`: arquivo em disco/volume, não no banco;
-  só JPG/PNG até 5 MB conferindo o conteúdo real; envio Delegado/Policial, leitura todos; `POST/GET
-  /veiculos/{id}/fotos`, `GET /veiculos/fotos/{id}`); alterar a própria senha `PATCH /usuarios/me/senha` (pede a
-  atual). Ordem sugerida: Minha mesa + painel → ofícios → observação no repasse → senha → busca → fotos.
+- **Outras lacunas do design (a implementar depois da apresentação)**: fotos da apreensão (`FotoVeiculo`: arquivo em
+  disco/volume, não no banco; só JPG/PNG até 5 MB conferindo o conteúdo real; envio Delegado/Policial, leitura todos;
+  `POST/GET /veiculos/{id}/fotos`, `GET /veiculos/fotos/{id}`). Pendências pedidas pelo front (documento do colega):
+  datas de entrada e da situação na lista de veículos (P-13), repasses de um procedimento (P-23), escopo por dono
+  para o Estagiário e na oitiva, sigilo de AIAI/AAFAI, revogação de token e corpo do 401/403 (P-15, P-18).
   Ajustes do front: tirar prazo (coluna, chips, card, "Pedir prorrogação"), "Etiqueta impressa" não é situação
   (sai do histórico) e incluir a tela de Ofícios no menu.
 - **Busca global (PR #30, pacote `search`)**: `GET /busca?q=` para a paleta Ctrl+K do front (Delegado/Policial/
@@ -294,10 +305,10 @@ As entidades JPA estão em `model/` (11 na `main`; `Pessoa` na PR `feature/pesso
 
 Desenvolvimento em fatias verticais (módulo completo: repository → service → DTO → controller), definindo antes o
 contrato (rotas + JSON) para o frontend poder trabalhar em paralelo. Situação: ✅ login → ✅ usuários (cadastro,
-aprovação, gestão, senha) → procedimentos (✅ cadastro com custódia inicial e histórico de status; listagem,
-detalhe, arquivar/reabrir e remessa com o colega) → repasse (✅ solicitação; aceitar/recusar com o colega) →
-✅ oitivas → ✅ veículos → notificações (✅ rotas; ✅ avisos de oitiva; ✅ REPASSE_RECEBIDO; aceito/recusado com o
-repasse) → ✅ exportação (procedimentos e veículos/carga). Inovações: ✅ etiqueta com QR code; ✅ relatório de carga.
+aprovação, gestão, senha) → ✅ procedimentos (cadastro, listagem, detalhe e
+históricos, arquivar/reabrir, remessa) → ✅ repasse (solicitação com observação, aceitar/recusar, listagem) →
+✅ oitivas → ✅ veículos → ✅ notificações → ✅ exportação (procedimentos com vários tipos, veículos/carga) →
+✅ pessoas → ✅ painel e Minha mesa → ✅ busca global → ✅ troca da própria senha. Inovações: ✅ etiqueta com QR code; ✅ relatório de carga.
 CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em React, definir
 `CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
 
