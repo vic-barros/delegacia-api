@@ -61,6 +61,9 @@ public class SecurityConfig {
                         // Lista para os seletores (destinatário, responsável, detentor): vem antes da regra geral
                         .requestMatchers(HttpMethod.GET, "/usuarios/operacionais").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
 
+                        // Trocar a própria senha: qualquer logado (inclusive o Admin); antes da regra geral
+                        .requestMatchers(HttpMethod.PATCH, "/usuarios/me/senha").authenticated()
+
                         // Gestão de usuarios: só Admin
                         .requestMatchers("/usuarios/**").hasRole("ADMIN")
 
