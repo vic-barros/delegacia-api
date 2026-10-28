@@ -14,10 +14,7 @@ import br.com.delegacia.sgidp.enums.custody.OrigemHistoricoCustodia;
 import br.com.delegacia.sgidp.enums.delegation.StatusRepasse;
 import br.com.delegacia.sgidp.enums.hearing.StatusOitiva;
 import br.com.delegacia.sgidp.enums.procedure.StatusProcedimento;
-import br.com.delegacia.sgidp.exception.ConfirmacaoNecessariaException;
-import br.com.delegacia.sgidp.exception.RecursoDuplicadoException;
-import br.com.delegacia.sgidp.exception.RecursoNaoEncontradoException;
-import br.com.delegacia.sgidp.exception.RegraNegocioException;
+import br.com.delegacia.sgidp.exception.*;
 import br.com.delegacia.sgidp.model.custody.HistoricoCustodia;
 import br.com.delegacia.sgidp.model.hearing.Oitiva;
 import br.com.delegacia.sgidp.model.procedure.HistoricoRemessaFinal;
@@ -136,7 +133,7 @@ public class ProcedimentoService {
         boolean detentor = procedimento.getDetentorAtual() != null
                 && usuario.getId().equals(procedimento.getDetentorAtual().getId());
         if (!delegado && !detentor) {
-            throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem reabrir esse procedimento");
+            throw new AcessoNegadoException("Apenas o detentor atual do procedimento ou um Delegado podem reabrir esse procedimento");
         }
 
         if (!procedimento.getStatusProcedimento().equals(StatusProcedimento.ARQUIVADO)) {
@@ -170,7 +167,7 @@ public class ProcedimentoService {
         boolean detentor = procedimento.getDetentorAtual() != null
                 && usuario.getId().equals(procedimento.getDetentorAtual().getId());
         if (!delegado && !detentor) {
-            throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem arquivar esse procedimento");
+            throw new AcessoNegadoException("Apenas o detentor atual do procedimento ou um Delegado podem arquivar esse procedimento");
         }
 
         if (procedimento.getStatusProcedimento() == StatusProcedimento.ARQUIVADO) {
@@ -216,7 +213,7 @@ public class ProcedimentoService {
         boolean detentor = procedimento.getDetentorAtual() != null
                 && usuario.getId().equals(procedimento.getDetentorAtual().getId());
         if (!delegado && !detentor) {
-            throw new RegraNegocioException("Apenas o detentor atual do procedimento ou um Delegado podem registrar a remessa final desse procedimento");
+            throw new AcessoNegadoException("Apenas o detentor atual do procedimento ou um Delegado podem registrar a remessa final desse procedimento");
         }
 
         if (dadosDto.data().isBefore(procedimento.getDataAbertura())) {
