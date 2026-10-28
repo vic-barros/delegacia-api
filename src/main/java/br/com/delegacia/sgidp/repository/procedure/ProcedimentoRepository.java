@@ -51,10 +51,13 @@ public interface ProcedimentoRepository
               AND (:detentorId IS NULL OR p.detentorAtual.id = :detentorId)
               AND (:numero IS NULL OR p.numeroProcedimento = :numero)
               AND (:crime IS NULL OR LOWER(p.crime) LIKE LOWER(CONCAT('%', CAST(:crime AS String), '%')))
+              AND (CAST(:dataInicio AS LocalDate) IS NULL OR p.dataAbertura >= :dataInicio)
+              AND (CAST(:dataFim AS LocalDate) IS NULL OR p.dataAbertura <= :dataFim)
             """)
     Page<Procedimento> listar(StatusProcedimento status, boolean somenteRemetidos,
                               Collection<TipoProcedimento> tipos, Integer ano, Long detentorId,
-                              Long numero, String crime, Pageable pageable);
+                              Long numero, String crime, LocalDate dataInicio, LocalDate dataFim,
+                              Pageable pageable);
 
     // Contagem das abas com os mesmos filtros (menos a aba), numa consulta só: cada SUM conta as linhas da sua aba
     @Query("""
@@ -68,10 +71,13 @@ public interface ProcedimentoRepository
               AND (:detentorId IS NULL OR p.detentorAtual.id = :detentorId)
               AND (:numero IS NULL OR p.numeroProcedimento = :numero)
               AND (:crime IS NULL OR LOWER(p.crime) LIKE LOWER(CONCAT('%', CAST(:crime AS String), '%')))
+              AND (CAST(:dataInicio AS LocalDate) IS NULL OR p.dataAbertura >= :dataInicio)
+              AND (CAST(:dataFim AS LocalDate) IS NULL OR p.dataAbertura <= :dataFim)
             """)
     ContagemAbasProcedimento contarPorAba(StatusProcedimento emAndamento, StatusProcedimento arquivado,
                                           Collection<TipoProcedimento> tipos, Integer ano, Long detentorId,
-                                          Long numero, String crime);
+                                          Long numero, String crime, LocalDate dataInicio,
+                                          LocalDate dataFim);
 
     // Minha mesa (RF38): procedimentos em andamento sob a posse do usuário logado
     List<Procedimento> findByDetentorAtualLoginAndStatusProcedimentoOrderByDataAberturaAsc(
