@@ -36,7 +36,7 @@ def texto(x, y, t, cls='nota'):
 
 
 grupo(53, 27, 854, 160, 'Cliente (navegador)')
-caixa(293, 67, 374, 93, 'React (SPA, Vite)', ['Telas, chamadas fetch com o token, rotas protegidas'], 'mint')
+caixa(293, 67, 374, 93, 'React Native + Expo (web)', ['Telas, chamadas fetch com o token, rotas protegidas'], 'mint')
 seta(480, 187, 240)
 texto(500, 212, 'HTTP / JSON (REST)', 'nota')
 texto(500, 229, 'Authorization: Bearer <JWT>', 'nota it')

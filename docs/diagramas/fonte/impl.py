@@ -49,7 +49,7 @@ seta([(470, 150), (470, 236)])
 texto(485, 196, 'HTTPS (porta 443)', 'nota it')
 
 grupo(60, 240, 820, 380, 'Servidor da delegacia - Docker Compose (reinicia sozinho)')
-caixa(90, 290, 220, 135, 'front (Nginx)', ['React compilado', 'HTTPS: porta 443', 'repassa /api para a API'], 'mint')
+caixa(90, 290, 220, 135, 'front (Nginx)', ['app Expo (web) compilado', 'HTTPS: porta 443', 'repassa /api para a API'], 'mint')
 caixa(360, 290, 220, 135, 'api (Spring Boot)', ['Java 21 embutido', 'porta 8080 só interna', 'segredos lidos do .env'], 'lav')
 caixa(630, 290, 220, 135, 'banco (PostgreSQL)', ['porta 5432 não exposta', 'acesso só pela API'], 'salmon')
 seta([(310, 357), (352, 357)])

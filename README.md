@@ -11,7 +11,7 @@
 
 <p align="center">
   Projeto desenvolvido por alunos do <strong>IFS</strong> e submetido ao <strong>Inovathon</strong> pela equipe <strong>Delegacia 4.0</strong>.<br>
-  Front-end (React): <a href="https://github.com/jaopzj/sisgep-frontend">jaopzj/sisgep-frontend</a>
+  Front-end (React Native + Expo, versão web): <a href="https://github.com/jaopzj/sisgep-frontend">jaopzj/sisgep-frontend</a>
 </p>
 
 ---
@@ -114,7 +114,7 @@ dos dados ou um modelo executado localmente.</p>
 
 ## Arquitetura
 
-<p align="justify">&emsp;&emsp;API REST em camadas (Controller → Service → Repository) consumida por uma SPA em React. A autenticação é
+<p align="justify">&emsp;&emsp;API REST em camadas (Controller → Service → Repository) consumida por um app React Native + Expo, usado no navegador (versão web). A autenticação é
 stateless (JWT validado pelo Spring Security) e a autorização é feita por perfil em cada rota.</p>
 
 <p align="center"><img src="docs/diagramas/arquitetura.png" alt="Arquitetura" width="560"></p>
@@ -129,7 +129,7 @@ documentação.</p>
 - **Back-end:** Java 21, Spring Boot 4, Spring Security (OAuth2 Resource Server, JWT), Spring Data JPA (Hibernate), Bean Validation, Lombok
 - **Banco de dados:** PostgreSQL
 - **Arquivos:** Apache PDFBox + ZXing (etiqueta com QR), Apache POI (XLSX), OpenPDF (relatórios em PDF)
-- **Front-end:** React + Vite ([repositório](https://github.com/jaopzj/sisgep-frontend))
+- **Front-end:** React Native + Expo (TypeScript), versão web ([repositório](https://github.com/jaopzj/sisgep-frontend))
 
 ## Como executar
 
@@ -137,12 +137,16 @@ documentação.</p>
 
 1. Crie um banco vazio no PostgreSQL.
 2. Copie `.env.example` para `.env` e preencha (banco, `JWT_SECRET` com pelo menos 32 caracteres, login e senha do
-   Admin inicial). Para o front em React, use `CORS_ORIGENS_PERMITIDAS=http://localhost:5173`.
+   Admin inicial). O front roda em `http://localhost:8081`: use `CORS_ORIGENS_PERMITIDAS=http://localhost:8081` e
+   `ETIQUETA_URL_BASE=http://localhost:8081` (endereço que o QR da etiqueta abre).
 3. Suba a API:
    ```bash
    ./mvnw spring-boot:run        # Windows: mvnw.cmd spring-boot:run
    ```
    As tabelas, os perfis e o Admin inicial são criados na primeira execução. A API fica em `http://localhost:8080`.
+4. Suba o front em outra pasta (ao lado desta, não dentro), conforme o
+   [README do front-end](https://github.com/jaopzj/sisgep-frontend): `npm install`, copiar `.env.example` para `.env`
+   e `npm run web`, que abre em `http://localhost:8081`. Pré-requisito: Node.js LTS.
 
 ### Dados de demonstração
 
