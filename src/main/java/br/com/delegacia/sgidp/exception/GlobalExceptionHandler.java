@@ -77,4 +77,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErroResponseDto> parametroAusente(MissingServletRequestParameterException e) {
         return resposta(HttpStatus.BAD_REQUEST, "Parâmetro obrigatório ausente: '" + e.getParameterName() + "'");
     }
+
+    // Exceção erro 403: Usuario autenticado e com papel corretos, mas sem permissão
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErroResponseDto> acessoNegado(AcessoNegadoException e){
+        return resposta(HttpStatus.FORBIDDEN, e.getMessage());
+    }
 }

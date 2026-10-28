@@ -2,6 +2,7 @@ package br.com.delegacia.sgidp.service.delegation;
 
 import java.util.Set;
 
+import br.com.delegacia.sgidp.exception.AcessoNegadoException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,7 +57,7 @@ public class RepasseService {
                 ));
 
         if (procedimento.getDetentorAtual() == null || !solicitante.getId().equals(procedimento.getDetentorAtual().getId())) {
-            throw new RegraNegocioException("O procedimento informado não pertence ao solicitante.");
+            throw new AcessoNegadoException("O procedimento informado não pertence ao solicitante.");
         }
 
         if (destinatario.getId().equals(solicitante.getId())) {
@@ -104,7 +105,7 @@ public class RepasseService {
         Repasse repasse = repasseRepository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação de repasse não encontrada."));
 
         if (!usuario.getId().equals(repasse.getDestinatario().getId())) {
-            throw new RegraNegocioException("Você não é o destinatário dessa solicitação de repasse.");
+            throw new AcessoNegadoException("Você não é o destinatário dessa solicitação de repasse.");
         }
 
         if (!repasse.getStatusRepasse().equals(StatusRepasse.PENDENTE)) {
@@ -144,7 +145,7 @@ public class RepasseService {
         Repasse repasse = repasseRepository.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação de repasse não encontrada."));
 
         if (!usuario.getId().equals(repasse.getDestinatario().getId())) {
-            throw new RegraNegocioException("Você não é o destinatário dessa solicitação de repasse.");
+            throw new AcessoNegadoException("Você não é o destinatário dessa solicitação de repasse.");
         }
 
         if (!repasse.getStatusRepasse().equals(StatusRepasse.PENDENTE)) {
