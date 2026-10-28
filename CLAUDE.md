@@ -20,7 +20,8 @@ caso, depois da apresentação, com tudo mergeado, num PR único via refactor da
 - Arquivos: Apache PDFBox + ZXing `core` (etiqueta com QR), Apache POI `poi-ooxml` (XLSX) e OpenPDF 3 (PDF com
   tabela; pacote `org.openpdf`, não o antigo `com.lowagie`) nas exportações
 - Fuso: `TimeZone.setDefault(America/Sao_Paulo)` no início do `main()` (antes disso o `@CreationTimestamp` saía em UTC)
-- Frontend separado em React (não está neste repositório; dev server Vite em `http://localhost:5173`)
+- Frontend separado em React Native + Expo (TypeScript), usado na versão web (não está neste repositório;
+  `npm run web` em `http://localhost:8081`; URL da API em `EXPO_PUBLIC_API_URL`)
 - Pacote base: `br.com.delegacia.sgidp`
 - Variáveis de ambiente do banco e `JWT_SECRET`: ver `.env.example`
 - Build/teste: `./mvnw test`
@@ -309,14 +310,15 @@ aprovação, gestão, senha) → ✅ procedimentos (cadastro, listagem, detalhe 
 históricos, arquivar/reabrir, remessa) → ✅ repasse (solicitação com observação, aceitar/recusar, listagem) →
 ✅ oitivas → ✅ veículos → ✅ notificações → ✅ exportação (procedimentos com vários tipos, veículos/carga) →
 ✅ pessoas → ✅ painel e Minha mesa → ✅ busca global → ✅ troca da própria senha. Inovações: ✅ etiqueta com QR code; ✅ relatório de carga.
-CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em React, definir
-`CORS_ORIGENS_PERMITIDAS=http://localhost:5173` (Vite) no `.env`; outras origens, separadas por vírgula.
+CORS: o padrão no código ainda é `localhost:4200` (Angular, plano inicial); com o front em Expo (web), definir
+`CORS_ORIGENS_PERMITIDAS=http://localhost:8081` e `ETIQUETA_URL_BASE=http://localhost:8081` no `.env`; outras
+origens, separadas por vírgula.
 
 Em paralelo ao colega: documentação (docx, DER/diagramas, coleção Postman), OpenAPI/Swagger (gera o contrato das
 rotas automaticamente; decidido manter `docs/endpoints.md` à mão, documento do colega, já com repasse, etiqueta,
 exportações e painel),
 dados de demonstração, Docker (PR `chore/docker`, RNF11) e testes automatizados (hoje só `contextLoads`).
-Docker (docx 1.8 e Figura 10): `docker-compose.yml` com front (Nginx + React compilado, HTTPS, repassa `/api`), api
+Docker (docx 1.8 e Figura 10): `docker-compose.yml` com front (Nginx + app Expo web compilado, HTTPS, repassa `/api`), api
 e banco (porta 5432 não publicada), `restart: unless-stopped`, volumes de dados e de fotos, backup diário com
 `pg_dump`; conferir se a PR `chore/docker` cobre isso.
 
