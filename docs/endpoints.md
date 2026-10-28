@@ -1,4 +1,4 @@
-# Documentação Técnica da API Backend SISGEP (antigo SGI-DP)
+# Documentação Técnica da API Backend SISGEP
 
 Esta documentação foi estruturada com base nos endpoints atualmente já implementados no backend e no contrato dos DTOs. Ela serve como referência oficial para o frontend consumir a API.
 
@@ -23,7 +23,7 @@ A API usa `ErroResponseDto` em respostas de erro:
 
 - 400 Bad Request: validação, payload inválido, parâmetro inválido
 - 401 Unauthorized: credenciais inválidas / token ausente ou inválido
-- 403 Forbidden: login permitido, mas sem permissão
+- 403 Forbidden: login permitido, mas sem permissão: o papel não acessa a rota (sem corpo, resposta do Spring Security) ou o usuário não é o dono do registro, por exemplo não é o detentor nem Delegado ao arquivar, ou não é o destinatário ao responder um repasse (com `ErroResponseDto` e `mensagem`)
 - 404 Not Found: recurso inexistente
 - 409 Conflict: conflito de regra de negócio ou confirmação necessária
 - 415 Unsupported Media Type: body enviado em tipo não suportado (ex.: JSON ausente ou Content-Type incorreto)
@@ -101,7 +101,7 @@ GET
 
 ### Descrição:
 
-Retorna os dados básicos do usuário autenticado, extraídos do token JWT.
+Retorna os dados do usuário autenticado: o login vem do token e o restante (id, nome, matrícula e papel) do banco.
 
 ### Autenticação:
 
@@ -117,9 +117,11 @@ Nenhum
 
 ```json
 {
-  "login": "admin",
-  "nome": "Administrador",
-  "role": "ROLE_ADMIN"
+  "id": 2,
+  "login": "vbarros",
+  "nome": "Victória Barros",
+  "matricula": "2001",
+  "role": "ROLE_DELEGADO"
 }
 ```
 
@@ -696,6 +698,108 @@ Sem body
 
 ---
 
+## Endpoint: Listar servidores operacionais
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/usuarios/operacionais`
+
+### Descrição:
+
+Lista os Delegados, Policiais e Estagiários com cadastro aprovado, só com `id`, `nome` e `role` (sem login, matrícula nem status). Usada nos seletores do front: destinatário do repasse, responsável da oitiva e filtro de detentor.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`. O Admin usa `GET /usuarios`.
+
+### Parâmetros de Entrada
+
+Nenhum
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+[
+  {
+    "id": 5,
+    "nome": "Ana Lima",
+    "role": "ROLE_POLICIAL"
+  },
+  {
+    "id": 3,
+    "nome": "Carlos Souza",
+    "role": "ROLE_POLICIAL"
+  },
+  {
+    "id": 6,
+    "nome": "Carolina Silva",
+    "role": "ROLE_POLICIAL"
+  }
+]
+```
+
+#### Erros comuns
+
+- 401 Unauthorized: token ausente ou inválido
+- 403 Forbidden: Admin
+
+---
+
+## Endpoint: Alterar a própria senha
+
+### Método HTTP:
+
+PATCH
+
+### Rota:
+
+`/usuarios/me/senha`
+
+### Descrição:
+
+O usuário logado troca a própria senha, informando a atual. O usuário vem do token (não há id na rota). A senha nunca volta na resposta.
+
+### Autenticação:
+
+Requer JWT. Qualquer usuário autenticado, inclusive o Admin.
+
+### Parâmetros de Entrada
+
+#### Body (Payload)
+
+```json
+{
+  "senhaAtual": "Demo@2026",
+  "novaSenha": "NovaSenha@1"
+}
+```
+
+#### Validações
+
+- `senhaAtual`: obrigatória
+- `novaSenha`: obrigatória, de 8 a 72 caracteres, diferente da atual
+
+### Respostas
+
+#### Sucesso (204 No Content)
+
+Sem corpo.
+
+#### Erros comuns
+
+- 400 Bad Request: campos ausentes ou senha curta (`detalhes`), "A senha atual está incorreta" ou "A nova senha deve ser diferente da atual"
+- 401 Unauthorized: token ausente ou inválido
+
+Observação: trocar a senha não invalida os tokens já emitidos (eles valem até expirar, 8h).
+
+---
+
 # 4) Notificações
 
 ## Endpoint: Listar notificações
@@ -921,11 +1025,7 @@ Campos:
   "detentorAtual": {
     "id": 2,
     "nome": "Delegado",
-    "matricula": "2025",
-    "login": "joao",
-    "status": "APROVADO",
-    "role": "ROLE_DELEGADO",
-    "motivoRejeicao": null
+    "role": "ROLE_DELEGADO"
   }
 }
 ```
@@ -935,6 +1035,571 @@ Campos:
 - 400 Bad Request: payload inválido
 - 409 Conflict: procedimento duplicado (tipo + número + ano)
 - 401 Unauthorized: token inválido
+- 403 Forbidden: Estagiário ou Admin
+
+---
+
+## Endpoint: Listar procedimentos
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/procedimentos`
+
+### Descrição:
+
+Acervo de procedimentos com filtros, ordenação e paginação. A resposta traz as contagens de cada aba (com os mesmos filtros, menos a aba), se o procedimento tem repasse pendente e desde quando está com o detentor atual (`naPosseDesde`, início da custódia aberta).
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Query Parameters
+
+- `aba`: `EM_ANDAMENTO` (padrão), `ARQUIVADOS`, `REMETIDOS` (remessa final registrada) ou `TODOS`
+- `tipo`: enum `TipoProcedimento`, opcional e repetível (`?tipo=IP&tipo=APF`); sem nenhum = todos
+- `ano`: number, opcional
+- `detentorId`: number, opcional
+- `texto`: opcional; só dígitos = número do procedimento, senão parte do crime
+- `dataInicio` / `dataFim`: `YYYY-MM-DD`, opcionais (data de abertura, inclusive; os mesmos da exportação)
+- `ordem`: `-abertura` (padrão, mais recente primeiro), `abertura`, `procedimento` (ano, tipo e número) ou `-procedimento`
+- `pagina`: number, padrão 0
+- `tamanho`: number, padrão 20, máximo 100
+
+Exemplo: `/procedimentos?aba=EM_ANDAMENTO&tipo=IP&dataInicio=2026-01-01&ordem=procedimento&pagina=0&tamanho=20`
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+{
+  "itens": [
+    {
+      "id": 6,
+      "tipoProcedimento": "IP",
+      "numeroProcedimento": 68,
+      "anoProcedimento": 2026,
+      "crime": "Roubo de veículo",
+      "dataAbertura": "2026-10-22",
+      "statusProcedimento": "EM_ANDAMENTO",
+      "remetido": false,
+      "detentorAtual": {
+        "id": 2,
+        "nome": "Victória Barros",
+        "role": "ROLE_DELEGADO"
+      },
+      "repassePendente": false,
+      "naPosseDesde": "2026-10-22T10:00:00"
+    },
+    {
+      "id": 7,
+      "tipoProcedimento": "IP",
+      "numeroProcedimento": 77,
+      "anoProcedimento": 2026,
+      "crime": "Roubo",
+      "dataAbertura": "2026-10-16",
+      "statusProcedimento": "EM_ANDAMENTO",
+      "remetido": false,
+      "detentorAtual": {
+        "id": 4,
+        "nome": "Marcos Andrade",
+        "role": "ROLE_POLICIAL"
+      },
+      "repassePendente": true,
+      "naPosseDesde": "2026-10-16T10:00:00"
+    }
+  ],
+  "pagina": 0,
+  "tamanho": 2,
+  "totalItens": 6,
+  "totalPaginas": 3,
+  "contagens": {
+    "emAndamento": 6,
+    "arquivados": 2,
+    "remetidos": 1,
+    "todos": 8
+  }
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: página/tamanho fora do limite, "A data inicial não pode ser posterior à data final.", "Ordem inválida. Use abertura, -abertura, procedimento ou -procedimento" ou enum/data em formato inválido
+- 403 Forbidden: Admin
+
+---
+
+## Endpoint: Detalhe do procedimento
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/procedimentos/{id}`
+
+### Descrição:
+
+Dados do procedimento e o repasse pendente, se houver (`null` quando não há).
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+{
+  "procedimento": {
+    "id": 3,
+    "tipoProcedimento": "IP",
+    "numeroProcedimento": 45,
+    "anoProcedimento": 2026,
+    "crime": "Roubo majorado",
+    "dataAbertura": "2026-09-28",
+    "dataRemessaFinal": null,
+    "protocoloRemessaFinal": null,
+    "statusProcedimento": "EM_ANDAMENTO",
+    "detentorAtual": {
+      "id": 2,
+      "nome": "Victória Barros",
+      "role": "ROLE_DELEGADO"
+    }
+  },
+  "repassePendente": null
+}
+```
+
+Com repasse pendente:
+
+```json
+"repassePendente": {
+  "id": 4,
+  "destinatario": { "id": 2, "nome": "Victória Barros", "role": "ROLE_DELEGADO" },
+  "dataSolicitacao": "2026-10-28T11:22:25"
+}
+```
+
+#### Erros comuns
+
+- 404 Not Found: "Procedimento não encontrado"
+- 403 Forbidden: Admin
+
+---
+
+## Endpoint: Histórico de custódia
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/procedimentos/{id}/historico-custodia`
+
+### Descrição:
+
+Todas as posses do procedimento, da mais antiga para a atual. `dataFim` nula = posse atual; `origem` é `CADASTRO_INICIAL` ou `REPASSE` (com o id do repasse aceito).
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+[
+  {
+    "id": 3,
+    "usuario": {
+      "id": 3,
+      "nome": "Carlos Souza",
+      "role": "ROLE_POLICIAL"
+    },
+    "origem": "CADASTRO_INICIAL",
+    "repasseOrigemId": null,
+    "dataInicio": "2026-09-28T10:00:00",
+    "dataFim": "2026-10-08T11:00:00"
+  },
+  {
+    "id": 14,
+    "usuario": {
+      "id": 2,
+      "nome": "Victória Barros",
+      "role": "ROLE_DELEGADO"
+    },
+    "origem": "REPASSE",
+    "repasseOrigemId": 1,
+    "dataInicio": "2026-10-08T11:00:00",
+    "dataFim": null
+  }
+]
+```
+
+#### Erros comuns
+
+- 404 Not Found: "Procedimento não encontrado"
+- 403 Forbidden: Admin
+
+---
+
+## Endpoint: Histórico de status
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/procedimentos/{id}/historico-status`
+
+### Descrição:
+
+Transições de status do procedimento (cadastro, arquivamento e reabertura), com motivo e responsável. `statusAnterior` nulo = registro do cadastro.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+[
+  {
+    "id": 3,
+    "statusAnterior": null,
+    "statusNovo": "EM_ANDAMENTO",
+    "motivo": "Cadastro do procedimento",
+    "responsavel": {
+      "id": 3,
+      "nome": "Carlos Souza",
+      "role": "ROLE_POLICIAL"
+    },
+    "dataTransicao": "2026-09-28T10:00:00"
+  }
+]
+```
+
+#### Erros comuns
+
+- 404 Not Found: "Procedimento não encontrado"
+- 403 Forbidden: Admin
+
+---
+
+## Endpoint: Arquivar procedimento
+
+### Método HTTP:
+
+PATCH
+
+### Rota:
+
+`/procedimentos/{id}/arquivar`
+
+### Descrição:
+
+Arquiva o procedimento com motivo e registra a transição no histórico de status. O Delegado arquiva qualquer procedimento; o Policial, só o que detém.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO` ou `ROLE_POLICIAL`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+#### Body (Payload)
+
+```json
+{
+  "motivo": "Relatório final remetido ao Judiciário"
+}
+```
+
+- `motivo`: obrigatório, de 3 a 500 caracteres
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+O procedimento atualizado, no mesmo formato de "Cadastrar procedimento":
+
+```json
+{
+  "id": 5,
+  "tipoProcedimento": "IP",
+  "numeroProcedimento": 30,
+  "anoProcedimento": 2026,
+  "crime": "Ameaça",
+  "dataAbertura": "2026-07-30",
+  "dataRemessaFinal": "2026-10-28",
+  "protocoloRemessaFinal": "PROT-123/2026",
+  "statusProcedimento": "ARQUIVADO",
+  "detentorAtual": {
+    "id": 2,
+    "nome": "Victória Barros",
+    "role": "ROLE_DELEGADO"
+  }
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: motivo inválido, "O procedimento já está arquivado", "Não é possível arquivar o procedimento enquanto houver repasses pendentes" ou "Não é possível arquivar o procedimento enquanto houver oitivas agendadas (datas). Conclua as já realizadas e desmarque as demais"
+- 403 Forbidden: "Apenas o detentor atual do procedimento ou um Delegado podem arquivar esse procedimento"; Estagiário ou Admin
+- 404 Not Found: "Procedimento não encontrado"
+
+---
+
+## Endpoint: Reabrir procedimento
+
+### Método HTTP:
+
+PATCH
+
+### Rota:
+
+`/procedimentos/{id}/reabrir`
+
+### Descrição:
+
+Volta um procedimento arquivado para `EM_ANDAMENTO`, com motivo (ex.: cota judicial ou ministerial), e registra no histórico de status. Delegado ou detentor atual.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO` ou `ROLE_POLICIAL`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+#### Body (Payload)
+
+```json
+{
+  "motivo": "Cota ministerial: novas diligências"
+}
+```
+
+- `motivo`: obrigatório, de 3 a 500 caracteres
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+O procedimento atualizado, no mesmo formato de "Cadastrar procedimento":
+
+```json
+{
+  "id": 5,
+  "tipoProcedimento": "IP",
+  "numeroProcedimento": 30,
+  "anoProcedimento": 2026,
+  "crime": "Ameaça",
+  "dataAbertura": "2026-07-30",
+  "dataRemessaFinal": "2026-10-28",
+  "protocoloRemessaFinal": "PROT-123/2026",
+  "statusProcedimento": "EM_ANDAMENTO",
+  "detentorAtual": {
+    "id": 2,
+    "nome": "Victória Barros",
+    "role": "ROLE_DELEGADO"
+  }
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: motivo inválido ou "Não é possível reabrir um procedimento que não está arquivado"
+- 403 Forbidden: "Apenas o detentor atual do procedimento ou um Delegado podem reabrir esse procedimento"; Estagiário ou Admin
+- 404 Not Found: "Procedimento não encontrado"
+
+---
+
+## Endpoint: Registrar remessa final
+
+### Método HTTP:
+
+PATCH
+
+### Rota:
+
+`/procedimentos/{id}/registrar-remessa`
+
+### Descrição:
+
+Registra a data e o protocolo da remessa final (o procedimento passa a aparecer na aba Remetidos). Se já houver remessa registrada, pede confirmação para substituir (`409` com `confirmarSobrescrita`). Toda mudança fica no histórico de remessa. Delegado ou detentor atual.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO` ou `ROLE_POLICIAL`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+#### Body (Payload)
+
+```json
+{
+  "data": "2026-10-28",
+  "numeroProtocolo": "PROT-123/2026",
+  "confirmarSobrescrita": false
+}
+```
+
+- `data`: obrigatória, `YYYY-MM-DD`, não pode ser futura nem anterior à abertura
+- `numeroProtocolo`: obrigatório, de 3 a 255 caracteres
+- `confirmarSobrescrita`: opcional; `true` para substituir uma remessa já registrada
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+O procedimento atualizado, no mesmo formato de "Cadastrar procedimento":
+
+```json
+{
+  "id": 5,
+  "tipoProcedimento": "IP",
+  "numeroProcedimento": 30,
+  "anoProcedimento": 2026,
+  "crime": "Ameaça",
+  "dataAbertura": "2026-07-30",
+  "dataRemessaFinal": "2026-10-28",
+  "protocoloRemessaFinal": "PROT-123/2026",
+  "statusProcedimento": "EM_ANDAMENTO",
+  "detentorAtual": {
+    "id": 2,
+    "nome": "Victória Barros",
+    "role": "ROLE_DELEGADO"
+  }
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: validação, "Não é possível definir uma data de remessa anterior à data de abertura do procedimento." ou "Não é possível registrar uma remessa para um procedimento arquivado."
+- 403 Forbidden: "Apenas o detentor atual do procedimento ou um Delegado podem registrar a remessa final desse procedimento"; Estagiário ou Admin
+- 404 Not Found: "Procedimento não encontrado"
+- 409 Conflict: confirmação necessária (reenviar com `confirmarSobrescrita: true`):
+
+```json
+{
+  "status": 409,
+  "mensagem": "Já existe uma remessa registrada. Confirme que deseja sobrescrever antes de prosseguir.",
+  "detalhes": [
+    "confirmarSobrescrita"
+  ],
+  "dataHora": "2026-10-28T13:21:53.25137377"
+}
+```
+
+- 409 Conflict: "Já existe um registro de remessa com a mesma data e número de protocolo."
+
+---
+
+## Endpoint: Histórico de remessa
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/procedimentos/{id}/historico-remessa`
+
+### Descrição:
+
+Registros e substituições da remessa final, com os valores anteriores e novos, data do registro e responsável.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+[
+  {
+    "id": 1,
+    "dataRemessaAnterior": null,
+    "protocoloAnterior": null,
+    "dataRemessaNova": "2026-10-28",
+    "protocoloNovo": "PROT-123/2026",
+    "dataRegistro": "2026-10-28T13:22:26.507383",
+    "responsavel": {
+      "id": 2,
+      "nome": "Victória Barros",
+      "role": "ROLE_DELEGADO"
+    }
+  },
+  {
+    "id": 2,
+    "dataRemessaAnterior": "2026-10-28",
+    "protocoloAnterior": "PROT-123/2026",
+    "dataRemessaNova": "2026-10-28",
+    "protocoloNovo": "PROT-124/2026",
+    "dataRegistro": "2026-10-28T13:22:26.556082",
+    "responsavel": {
+      "id": 2,
+      "nome": "Victória Barros",
+      "role": "ROLE_DELEGADO"
+    }
+  }
+]
+```
+
+#### Erros comuns
+
+- 404 Not Found: "Procedimento não encontrado"
+- 403 Forbidden: Admin
 
 ---
 
@@ -963,10 +1628,12 @@ Requer JWT. Papéis permitidos: `ROLE_DELEGADO` ou `ROLE_POLICIAL`.
 - `formato`: enum `FormatoExportacao` (`XLSX` ou `PDF`), obrigatório
 - `dataInicio`: string `YYYY-MM-DD`, opcional (data de abertura a partir de)
 - `dataFim`: string `YYYY-MM-DD`, opcional (data de abertura até, inclusive)
-- `tipo`: enum `TipoProcedimento`, opcional
+- `tipo`: enum `TipoProcedimento`, opcional e repetível (`?tipo=IP&tipo=APF`); sem nenhum = todos
 - `status`: enum `StatusProcedimento` (`EM_ANDAMENTO` ou `ARQUIVADO`), opcional
 
-Exemplo: `/procedimentos/exportar?formato=PDF&tipo=IP&status=EM_ANDAMENTO`
+Exemplo: `/procedimentos/exportar?formato=PDF&tipo=IP&tipo=APF&status=EM_ANDAMENTO`
+
+Os filtros `dataInicio`, `dataFim` e `tipo` são os mesmos da listagem (`GET /procedimentos`): com os mesmos valores, o arquivo traz o mesmo conjunto.
 
 ### Respostas
 
@@ -1017,7 +1684,8 @@ Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGI
 ```json
 {
   "idDestinatario": 3,
-  "idProcedimento": 6
+  "idProcedimento": 5,
+  "observacao": "Falta ouvir a testemunha, segue para você conduzir."
 }
 ```
 
@@ -1025,6 +1693,7 @@ Campos:
 
 - `idDestinatario`: number, obrigatório (Delegado, Policial ou Estagiário com cadastro aprovado)
 - `idProcedimento`: number, obrigatório
+- `observacao`: string, opcional, até 500 caracteres (recado para o destinatário; em branco vira `null`)
 
 ### Respostas
 
@@ -1032,45 +1701,42 @@ Campos:
 
 ```json
 {
-  "id": 1,
+  "id": 6,
   "statusRepasse": "PENDENTE",
+  "observacao": "Falta ouvir a testemunha, segue para você conduzir.",
   "justificativaRecusa": null,
-  "dataSolicitacao": "2026-10-20T14:30:00",
+  "dataSolicitacao": "2026-10-28T13:21:53.478668",
   "dataResposta": null,
   "procedimento": {
-    "id": 6,
-    "tipoProcedimento": "BO",
-    "numeroProcedimento": 22,
+    "id": 5,
+    "tipoProcedimento": "IP",
+    "numeroProcedimento": 30,
     "anoProcedimento": 2026,
-    "crime": "Furto de carro",
-    "dataAbertura": "2026-10-03",
-    "dataRemessaFinal": null,
-    "protocoloRemessaFinal": null,
+    "crime": "Ameaça",
+    "dataAbertura": "2026-07-30",
+    "dataRemessaFinal": "2026-10-28",
+    "protocoloRemessaFinal": "PROT-123/2026",
     "statusProcedimento": "EM_ANDAMENTO",
     "detentorAtual": {
       "id": 2,
-      "nome": "Delegado",
-      "matricula": "2025",
-      "login": "joao",
-      "status": "APROVADO",
-      "role": "ROLE_DELEGADO",
-      "motivoRejeicao": null
+      "nome": "Victória Barros",
+      "role": "ROLE_DELEGADO"
     }
   },
   "solicitante": {
     "id": 2,
-    "nome": "Delegado",
-    "matricula": "2025",
-    "login": "joao",
+    "nome": "Victória Barros",
+    "matricula": "2001",
+    "login": "vbarros",
     "status": "APROVADO",
     "role": "ROLE_DELEGADO",
     "motivoRejeicao": null
   },
   "destinatario": {
     "id": 3,
-    "nome": "Policial",
-    "matricula": "2026",
-    "login": "maria",
+    "nome": "Carlos Souza",
+    "matricula": "2002",
+    "login": "csouza",
     "status": "APROVADO",
     "role": "ROLE_POLICIAL",
     "motivoRejeicao": null
@@ -1082,13 +1748,268 @@ Campos:
 
 - 400 Bad Request:
   - campos ausentes
-  - "O procedimento informado não pertence ao solicitante."
+  - observação com mais de 500 caracteres
   - "Não é possível repassar um procedimento para si próprio."
   - "O destinatário deve ser Delegado, Policial ou Estagiário com cadastro aprovado"
   - "Não é possível solicitar um repasse para um procedimento arquivado."
   - "Já existe um repasse pendente para esse procedimento."
 - 404 Not Found: "Destinatário não encontrado." ou "Procedimento não encontrado."
+- 403 Forbidden: "O procedimento informado não pertence ao solicitante." (só o detentor atual pede o repasse); Admin
+
+---
+
+## Endpoint: Listar repasses
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/repasses`
+
+### Descrição:
+
+Tela de repasses: só os repasses em que o usuário logado é destinatário ou solicitante (vem do token). A resposta traz os números das abas "Recebidos" e "Enviados" (pendentes).
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Query Parameters
+
+- `aba`: `RECEBIDOS` (padrão; pendentes em que sou o destinatário), `ENVIADOS` (pendentes que eu pedi) ou `HISTORICO` (aceitos e recusados, enviados e recebidos)
+- `texto`: opcional; só dígitos = número do procedimento, senão parte do crime ou do nome de um dos servidores
+- `pagina`: number, padrão 0
+- `tamanho`: number, padrão 20, máximo 100
+
+Ordem: mais recentes primeiro (`dataSolicitacao`; no histórico, `dataResposta`).
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+{
+  "itens": [
+    {
+      "id": 4,
+      "statusRepasse": "PENDENTE",
+      "procedimentoId": 7,
+      "tipoProcedimento": "IP",
+      "numeroProcedimento": 77,
+      "anoProcedimento": 2026,
+      "crime": "Roubo",
+      "solicitante": {
+        "id": 4,
+        "nome": "Marcos Andrade",
+        "role": "ROLE_POLICIAL"
+      },
+      "destinatario": {
+        "id": 2,
+        "nome": "Victória Barros",
+        "role": "ROLE_DELEGADO"
+      },
+      "observacao": "Falta ouvir a testemunha, segue para você conduzir.",
+      "justificativaRecusa": null,
+      "dataSolicitacao": "2026-10-28T11:21:51.133623",
+      "dataResposta": null
+    }
+  ],
+  "pagina": 0,
+  "tamanho": 1,
+  "totalItens": 2,
+  "totalPaginas": 2,
+  "recebidosPendentes": 2,
+  "enviadosPendentes": 1
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: página/tamanho fora do limite ou aba inválida
 - 403 Forbidden: Admin
+
+---
+
+## Endpoint: Aceitar repasse
+
+### Método HTTP:
+
+PATCH
+
+### Rota:
+
+`/repasses/{id}/aceitar`
+
+### Descrição:
+
+O destinatário aceita o repasse. Na mesma transação: o repasse vira `ACEITO`, a custódia anterior é encerrada, abre-se a nova custódia (origem `REPASSE`), o destinatário vira o detentor, o aviso `REPASSE_RECEBIDO` é marcado como lido e o solicitante recebe `REPASSE_ACEITO`.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório (id do repasse)
+
+Sem body.
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Mesmo formato da resposta de "Solicitar repasse", com o status, a `dataResposta` e o procedimento já atualizados:
+
+```json
+{
+  "id": 5,
+  "statusRepasse": "ACEITO",
+  "observacao": null,
+  "justificativaRecusa": null,
+  "dataSolicitacao": "2026-10-27T13:21:51.133623",
+  "dataResposta": "2026-10-28T13:21:52.844750003",
+  "procedimento": {
+    "id": 8,
+    "tipoProcedimento": "BO",
+    "numeroProcedimento": 43,
+    "anoProcedimento": 2026,
+    "crime": "Furto",
+    "dataAbertura": "2026-10-13",
+    "dataRemessaFinal": null,
+    "protocoloRemessaFinal": null,
+    "statusProcedimento": "EM_ANDAMENTO",
+    "detentorAtual": {
+      "id": 2,
+      "nome": "Victória Barros",
+      "role": "ROLE_DELEGADO"
+    }
+  },
+  "solicitante": {
+    "id": 6,
+    "nome": "Carolina Silva",
+    "matricula": "2005",
+    "login": "csilva",
+    "status": "APROVADO",
+    "role": "ROLE_POLICIAL",
+    "motivoRejeicao": null
+  },
+  "destinatario": {
+    "id": 2,
+    "nome": "Victória Barros",
+    "matricula": "2001",
+    "login": "vbarros",
+    "status": "APROVADO",
+    "role": "ROLE_DELEGADO",
+    "motivoRejeicao": null
+  }
+}
+```
+
+#### Erros comuns
+
+- 403 Forbidden: "Você não é o destinatário dessa solicitação de repasse."; Admin
+- 404 Not Found: "Solicitação de repasse não encontrada."
+- 409 Conflict: "O repasse já foi respondido. Status atual: ACEITO" (ou `RECUSADO`)
+
+---
+
+## Endpoint: Recusar repasse
+
+### Método HTTP:
+
+PATCH
+
+### Rota:
+
+`/repasses/{id}/recusar`
+
+### Descrição:
+
+O destinatário recusa o repasse com justificativa. A custódia continua com o solicitante, que recebe `REPASSE_RECUSADO` com o motivo.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Path Parameters
+
+- `id`: number, obrigatório (id do repasse)
+
+#### Body (Payload)
+
+```json
+{
+  "justificativa": "Estou de plantão esta semana"
+}
+```
+
+- `justificativa`: obrigatória, de 3 a 500 caracteres
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+Mesmo formato da resposta de "Solicitar repasse", com o status, a `dataResposta` e o procedimento já atualizados:
+
+```json
+{
+  "id": 4,
+  "statusRepasse": "RECUSADO",
+  "observacao": "Falta ouvir a testemunha, segue para você conduzir.",
+  "justificativaRecusa": "Estou de plantão esta semana",
+  "dataSolicitacao": "2026-10-28T11:21:51.133623",
+  "dataResposta": "2026-10-28T13:21:53.042323826",
+  "procedimento": {
+    "id": 7,
+    "tipoProcedimento": "IP",
+    "numeroProcedimento": 77,
+    "anoProcedimento": 2026,
+    "crime": "Roubo",
+    "dataAbertura": "2026-10-16",
+    "dataRemessaFinal": null,
+    "protocoloRemessaFinal": null,
+    "statusProcedimento": "EM_ANDAMENTO",
+    "detentorAtual": {
+      "id": 4,
+      "nome": "Marcos Andrade",
+      "role": "ROLE_POLICIAL"
+    }
+  },
+  "solicitante": {
+    "id": 4,
+    "nome": "Marcos Andrade",
+    "matricula": "2003",
+    "login": "mandrade",
+    "status": "APROVADO",
+    "role": "ROLE_POLICIAL",
+    "motivoRejeicao": null
+  },
+  "destinatario": {
+    "id": 2,
+    "nome": "Victória Barros",
+    "matricula": "2001",
+    "login": "vbarros",
+    "status": "APROVADO",
+    "role": "ROLE_DELEGADO",
+    "motivoRejeicao": null
+  }
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: justificativa ausente ou fora do tamanho
+- 403 Forbidden: "Você não é o destinatário dessa solicitação de repasse."; Admin
+- 404 Not Found: "Solicitação de repasse não encontrada."
+- 409 Conflict: "O repasse já foi respondido. Status atual: ..."
 
 ---
 
@@ -1696,7 +2617,8 @@ PUT
 ### Descrição:
 
 Atualiza os dados da pessoa. **Enviar todos os campos**: o que vier nulo ou vazio fica nulo (o PUT substitui o
-cadastro). A própria pessoa pode manter o CPF dela.
+cadastro), **menos o CPF**: como a ficha devolve o CPF mascarado, `cpf` ausente ou vazio mantém o CPF gravado. Para
+trocar, enviar o CPF novo. A própria pessoa pode manter o CPF dela.
 
 ### Parâmetros de Entrada
 
@@ -1880,7 +2802,7 @@ Busca veículos com filtros opcionais.
 
 ### Autenticação:
 
-Requer JWT
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO` (Admin recebe 403).
 
 ### Parâmetros de Entrada
 
@@ -1955,7 +2877,7 @@ Busca um veículo específico pelo seu id.
 
 ### Autenticação:
 
-Requer JWT
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO` (Admin recebe 403).
 
 ### Parâmetros de Entrada
 
@@ -2009,7 +2931,7 @@ Retorna o histórico de transições de situação do veículo.
 
 ### Autenticação:
 
-Requer JWT
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO` (Admin recebe 403).
 
 ### Parâmetros de Entrada
 
@@ -2201,7 +3123,7 @@ Gera a etiqueta adesiva do veículo em PDF de 100 x 50 mm: unidade, lacre, tipo/
 
 ### Autenticação:
 
-Requer JWT. Qualquer usuário autenticado (inclusive Estagiário).
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO` (Admin recebe 403).
 
 ### Parâmetros de Entrada
 
@@ -2464,6 +3386,85 @@ Nenhum.
 
 - 401 Unauthorized: token ausente ou inválido
 - 403 Forbidden: Admin (não acessa o painel)
+
+---
+
+# 6.6) Busca global
+
+## Endpoint: Busca global
+
+### Método HTTP:
+
+GET
+
+### Rota:
+
+`/busca`
+
+### Descrição:
+
+Um campo só para procurar procedimentos, veículos e pessoas. Reconhece número de procedimento (`IP 45/2026`, `45/2026` ou `45`), placa e lacre, CPF, nome ou alcunha e crime. Até 10 resultados por grupo. CPF sempre mascarado.
+
+### Autenticação:
+
+Requer JWT. Papéis permitidos: `ROLE_DELEGADO`, `ROLE_POLICIAL` ou `ROLE_ESTAGIARIO`.
+
+### Parâmetros de Entrada
+
+#### Query Parameters
+
+- `q`: obrigatório, ao menos 2 caracteres
+
+Exemplos: `/busca?q=IP 45/2026`, `/busca?q=GWE3A22`, `/busca?q=joão`
+
+### Respostas
+
+#### Sucesso (200 OK)
+
+```json
+{
+  "procedimentos": [
+    {
+      "id": 3,
+      "identificacao": "IP 45/2026",
+      "crime": "Roubo majorado",
+      "status": "EM_ANDAMENTO",
+      "detentor": "Victória Barros"
+    }
+  ],
+  "veiculos": [
+    {
+      "id": 1,
+      "lacre": "LAC-2026-000321",
+      "descricao": "Carro Volkswagen Gol - Branco",
+      "placa": "GWE3A22",
+      "situacao": "NA_DEPOL",
+      "procedimento": "IP 68/2026"
+    }
+  ],
+  "pessoas": [
+    {
+      "id": 1,
+      "nome": "João Santos",
+      "alcunha": "João Grande",
+      "idade": 36,
+      "cpf": "***.982.247-**"
+    },
+    {
+      "id": 6,
+      "nome": "Pedro Araújo",
+      "alcunha": null,
+      "idade": 31,
+      "cpf": null
+    }
+  ]
+}
+```
+
+#### Erros comuns
+
+- 400 Bad Request: "Digite ao menos 2 caracteres para buscar" ou `q` ausente
+- 403 Forbidden: Admin
 
 ---
 
