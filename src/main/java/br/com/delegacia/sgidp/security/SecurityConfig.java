@@ -103,6 +103,9 @@ public class SecurityConfig {
 
                         // Busca global (Ctrl+K): servidores; o Admin não acessa procedimentos, veículos nem pessoas
                         .requestMatchers(HttpMethod.GET, "/busca").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
+
+                        // Agente de ia
+                        .requestMatchers(HttpMethod.GET, "/agente/resumir-procedimento/{id}").hasAnyRole("DELEGADO", "POLICIAL", "ESTAGIARIO")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(conversorDePapeis())));

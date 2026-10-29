@@ -68,4 +68,6 @@ public interface OitivaRepository extends JpaRepository<Oitiva, Long> {
             GROUP BY o.procedimento.id
             """)
     List<DataPorProcedimento> buscarUltimaMovimentacao(Collection<Long> procedimentoIds, StatusOitiva concluida);
+
+    List<Oitiva> findByProcedimentoIdOrderByDataCadastroAsc(Long procedimentoId);
 }

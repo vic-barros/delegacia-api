@@ -63,6 +63,8 @@ public interface RepasseRepository extends JpaRepository<Repasse, Long> {
     long countByDestinatarioLoginAndStatusRepasse(String login, StatusRepasse status);
 
     long countBySolicitanteLoginAndStatusRepasse(String login, StatusRepasse status);
+
+    List<Repasse> findByProcedimentoIdOrderByDataSolicitacaoAsc(Long procedimentoId);
 }
 
 
