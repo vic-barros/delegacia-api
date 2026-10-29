@@ -41,4 +41,6 @@ public interface HistoricoSituacaoVeiculoRepository extends JpaRepository<Histor
             GROUP BY h.veiculo.procedimento.id
             """)
     List<DataPorProcedimento> buscarUltimaMovimentacao(Collection<Long> procedimentoIds);
+
+    List<HistoricoSituacaoVeiculo> findByVeiculoProcedimentoIdOrderByDataTransicaoAsc(Long procedimentoId);
 }

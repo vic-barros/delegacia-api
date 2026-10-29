@@ -74,4 +74,6 @@ public interface VeiculoRepository extends JpaRepository<Veiculo, Long> {
             """)
     List<Veiculo> buscarPorIdentificador(String termo, String termoSemHifen, Limit limite);
 
+    List<Veiculo> findByProcedimentoIdOrderByIdAsc(Long procedimentoId);
+
 }
