@@ -96,16 +96,12 @@ dos dados ou um modelo executado localmente.</p>
   <img src="docs/img/telas/minha-mesa.jpg" alt="Minha mesa" width="420">
 </p>
 <p align="center">
-  <img src="docs/img/telas/procedimento-detalhe.jpg" alt="Detalhe do procedimento" width="420">
   <img src="docs/img/telas/repasses.jpg" alt="Repasses" width="420">
+  <img src="docs/img/telas/veiculo-ficha.jpg" alt="Ficha do veículo com etiqueta e histórico" width="420">
 </p>
 <p align="center">
+  <img src="docs/img/telas/procedimento-detalhe.jpg" alt="Detalhe do procedimento" width="420">
   <img src="docs/img/telas/vinculos.jpg" alt="Grafo de vínculos" width="420">
-  <img src="docs/img/telas/vinculos-detalhe.jpg" alt="Grafo de vínculos: testemunha e veículo ligados ao procedimento" width="420">
-</p>
-<p align="center">
-  <img src="docs/img/telas/veiculo-cadastro.jpg" alt="Cadastro de veículo" width="420">
-  <img src="docs/img/telas/relatorios.jpg" alt="Relatórios" width="420">
 </p>
 
 <p align="center"><sub>Protótipo das telas, com dados fictícios. Algumas ainda exibem prazos, que ficaram fora do escopo
