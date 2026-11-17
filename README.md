@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  Projeto desenvolvido por alunos do <strong>IFS</strong> e submetido ao <strong>Inovathon</strong> pela equipe <strong>Delegacia 4.0</strong>.<br>
+  Idealizado por <strong>Laíssa Victória Barros</strong> e desenvolvido por estudantes do <strong>IFS</strong>; apresentado no <strong>Inovathon</strong> pela equipe <strong>Delegacia 4.0</strong>.<br>
   Front-end (React Native + Expo, versão web): <a href="https://github.com/jaopzj/sisgep-frontend">jaopzj/sisgep-frontend</a>
 </p>
 
@@ -176,14 +176,15 @@ banco (menos perfis e Admin): use um banco só para isso.</p>
 - Distinção do Delegado titular em delegacias com mais de um delegado
 - Implantação centralizada multi-tenant, com o login da intranet institucional
 
-## Equipe
+## Autoria
 
-Alunos do IFS, equipe <strong>Delegacia 4.0</strong>:
-
-- **Laíssa Victória Barros** (líder)
-- Elton Ramon Alves Santos
-- Erick Marques Santos Bomfim
-- Hebert Ruan do Nascimento Feitosa
-- João Pedro da Silva Carvalho
+- **Laíssa Victória Barros**: idealizadora e titular do projeto; desenvolvimento do back-end
+- **Hebert Ruan do Nascimento Feitosa**: desenvolvimento do back-end
+- **João Pedro da Silva Carvalho**: desenvolvimento do front-end ([sisgep-frontend](https://github.com/jaopzj/sisgep-frontend))
 
 > Todos os dados usados em testes, demonstrações e telas são fictícios.
+
+## Direitos
+
+© 2026 Laíssa Victória Barros. Todos os direitos reservados. Este código está disponível apenas para consulta: o uso,
+a cópia, a modificação ou a distribuição dependem de autorização por escrito da titular. Ver [LICENSE](LICENSE).
