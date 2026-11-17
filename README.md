@@ -174,7 +174,7 @@ banco (menos perfis e Admin): use um banco só para isso.</p>
 
 ## Autoria
 
-- **Laíssa Victória Barros**: idealizadora e titular do projeto; desenvolvimento do back-end
+- **Laíssa Victória Barros**: idealizadora do projeto; desenvolvimento do back-end
 - **Hebert Ruan do Nascimento Feitosa**: desenvolvimento do back-end
 - **João Pedro da Silva Carvalho**: desenvolvimento do front-end ([sisgep-frontend](https://github.com/jaopzj/sisgep-frontend))
 
@@ -182,5 +182,5 @@ banco (menos perfis e Admin): use um banco só para isso.</p>
 
 ## Direitos
 
-© 2026 Laíssa Victória Barros. Todos os direitos reservados. Este código está disponível apenas para consulta: o uso,
-a cópia, a modificação ou a distribuição dependem de autorização por escrito da titular. Ver [LICENSE](LICENSE).
+© 2026 os autores. Todos os direitos reservados. Este código está disponível apenas para consulta: o uso, a cópia,
+a modificação ou a distribuição dependem de autorização por escrito dos autores. Ver [LICENSE](LICENSE).

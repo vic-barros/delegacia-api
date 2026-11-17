@@ -1,7 +1,7 @@
 # SISGEP — Sistema Interno de Gestão Policial (v2)
 
 API REST em Spring Boot para controle de oitivas, custódia de procedimentos policiais e veículos apreendidos.
-Idealizadora e titular: Laíssa Victória Barros. Desenvolvimento: Laíssa e Hebert Ruan do Nascimento Feitosa (back-end),
+Idealizadora: Laíssa Victória Barros. Desenvolvimento: Laíssa e Hebert Ruan do Nascimento Feitosa (back-end),
 João Pedro da Silva Carvalho (front-end). Apresentado no Inovathon (IFS) pela equipe Delegacia 4.0. Código sem licença
 aberta: todos os direitos reservados (`LICENSE`).
 Front-end: https://github.com/jaopzj/sisgep-frontend. Dados de demonstração: `docs/demo/dados-demonstracao.sql`
