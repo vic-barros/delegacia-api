@@ -1,8 +1,9 @@
 # SISGEP — Sistema Interno de Gestão Policial (v2)
 
 API REST em Spring Boot para controle de oitivas, custódia de procedimentos policiais e veículos apreendidos.
-Projeto acadêmico/portfólio (IFS, Inovathon, equipe Delegacia 4.0: Laíssa Victória Barros (líder), Elton Ramon
-Alves Santos, Erick Marques Santos Bomfim, Hebert Ruan do Nascimento Feitosa, João Pedro da Silva Carvalho).
+Idealizadora: Laíssa Victória Barros. Desenvolvimento: Laíssa e Hebert Ruan do Nascimento Feitosa (back-end),
+João Pedro da Silva Carvalho (front-end). Apresentado no Inovathon (IFS) pela equipe Delegacia 4.0. Código sem licença
+aberta: todos os direitos reservados (`LICENSE`).
 Front-end: https://github.com/jaopzj/sisgep-frontend. Dados de demonstração: `docs/demo/dados-demonstracao.sql`
 (fictícios, datas relativas ao dia, login `vbarros`/`Demo@2026`; apaga os dados anteriores menos roles e Admin).
 Nome provisório do projeto: SGI-DP. O pacote Java (`br.com.delegacia.sgidp`), a classe `SgiDpApplication` e o `artifactId` mantêm
